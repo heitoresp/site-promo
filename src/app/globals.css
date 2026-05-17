@@ -1,0 +1,267 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   VARIÁVEIS GLOBAIS
+   ============================================================ */
+:root {
+  --bg-primary:    #0a0a0f;
+  --bg-secondary:  #111118;
+  --bg-card:       #16161f;
+  --bg-card-hover: #1c1c28;
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-glow:   rgba(249, 115, 22, 0.4);
+
+  --text-primary:   #f8f8ff;
+  --text-secondary: #a1a1b5;
+  --text-muted:     #5a5a72;
+
+  --brand:        #f97316;
+  --brand-light:  #fb923c;
+  --brand-dark:   #ea6a0a;
+  --hot:          #ef4444;
+  --nova:         #22c55e;
+  --gold:         #f59e0b;
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ============================================================
+   SELEÇÃO DE TEXTO
+   ============================================================ */
+::selection {
+  background: rgba(249, 115, 22, 0.35);
+  color: #fff;
+}
+
+/* ============================================================
+   SCROLLBAR CUSTOMIZADA
+   ============================================================ */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb {
+  background: rgba(249, 115, 22, 0.4);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(249, 115, 22, 0.7);
+}
+
+/* ============================================================
+   COMPONENTES CUSTOMIZADOS
+   ============================================================ */
+@layer components {
+
+  /* ----- CARD DE PROMO ----- */
+  .promo-card {
+    @apply relative rounded-2xl overflow-hidden transition-all duration-300;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .promo-card:hover {
+    background: var(--bg-card-hover);
+    border-color: rgba(249, 115, 22, 0.25);
+    transform: translateY(-4px);
+    box-shadow:
+      0 20px 40px -10px rgba(0, 0, 0, 0.5),
+      0 0 0 1px rgba(249, 115, 22, 0.15),
+      0 0 30px -5px rgba(249, 115, 22, 0.15);
+  }
+
+  /* ----- BADGE HOT ----- */
+  .badge-hot {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: #fff;
+    animation: pulseGlow 2s ease-in-out infinite;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.5);
+  }
+
+  /* ----- BADGE NOVA ----- */
+  .badge-nova {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide;
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: #fff;
+  }
+
+  /* ----- BADGE DESCONTO ----- */
+  .badge-desconto {
+    @apply inline-flex items-center px-2.5 py-1 rounded-xl text-sm font-extrabold;
+    background: linear-gradient(135deg, rgba(249,115,22,0.2), rgba(249,115,22,0.1));
+    color: var(--brand-light);
+    border: 1px solid rgba(249, 115, 22, 0.3);
+  }
+
+  /* ----- BOTÃO PEGAR PROMO ----- */
+  .btn-promo {
+    @apply w-full py-3 px-4 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2;
+    background: linear-gradient(135deg, #f97316, #ea6a0a);
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
+  }
+
+  .btn-promo:hover {
+    background: linear-gradient(135deg, #fb923c, #f97316);
+    box-shadow: 0 6px 25px rgba(249, 115, 22, 0.5);
+    transform: scale(1.02);
+  }
+
+  .btn-promo:active {
+    transform: scale(0.98);
+  }
+
+  /* ----- INPUT DE BUSCA ----- */
+  .search-input {
+    @apply w-full rounded-xl px-4 py-2.5 text-sm transition-all duration-200 outline-none;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+  }
+
+  .search-input:focus {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(249, 115, 22, 0.4);
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+  }
+
+  .search-input::placeholder {
+    color: var(--text-muted);
+  }
+
+  /* ----- GLASS CARD (admin/modals) ----- */
+  .glass-card {
+    background: rgba(22, 22, 31, 0.8);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--border-subtle);
+    @apply rounded-2xl;
+  }
+
+  /* ----- PREÇO CORTADO ----- */
+  .preco-original {
+    @apply line-through text-sm;
+    color: var(--text-muted);
+  }
+
+  .preco-promo {
+    @apply text-2xl font-extrabold;
+    background: linear-gradient(135deg, #fb923c, #f97316);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ----- SHIMMER LOADING ----- */
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      var(--bg-card) 25%,
+      rgba(255,255,255,0.05) 50%,
+      var(--bg-card) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  /* ----- GLOW LINE (decorativo) ----- */
+  .glow-line {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(249, 115, 22, 0.6),
+      transparent
+    );
+  }
+
+  /* ----- CATEGORIA PILL ----- */
+  .categoria-pill {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+  }
+
+  .categoria-pill:hover,
+  .categoria-pill.ativo {
+    background: rgba(249, 115, 22, 0.15);
+    border-color: rgba(249, 115, 22, 0.35);
+    color: var(--brand-light);
+  }
+}
+
+/* ============================================================
+   KEYFRAMES
+   ============================================================ */
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 12px rgba(239, 68, 68, 0.5); }
+  50%       { box-shadow: 0 0 24px rgba(239, 68, 68, 0.8), 0 0 40px rgba(239, 68, 68, 0.3); }
+}
+
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to   { background-position: 200% 0; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-8px); }
+}
+
+@keyframes badgePop {
+  from { transform: scale(0.5); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+/* ============================================================
+   FUNDO COM GRID SUTIL
+   ============================================================ */
+.bg-grid {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 50px 50px;
+}
+
+/* Glow ambiental no topo da página */
+.ambient-glow::before {
+  content: "";
+  position: fixed;
+  top: -200px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 800px;
+  height: 400px;
+  background: radial-gradient(ellipse, rgba(249,115,22,0.08) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
