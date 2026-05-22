@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+// createClient ainda usado para logout
 import type { User } from "@supabase/supabase-js";
 import type { Promo, Categoria, Loja, CreatePromoPayload } from "@/types/promo";
 import { formatarPreco, tempoRelativo } from "@/lib/utils";
@@ -93,22 +94,29 @@ export function AdminDashboard({ user, promos: promosIniciais, categorias, lojas
   }
 
   async function toggleAtivo(promo: Promo) {
-    const supabase = createClient();
-    await supabase
-      .from("promos")
-      .update({ ativo: !promo.ativo })
-      .eq("id", promo.id);
+    const res = await fetch(`/api/admin/promos/${promo.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ativo: !promo.ativo }),
+    });
 
-    setPromos((prev) =>
-      prev.map((p) => (p.id === promo.id ? { ...p, ativo: !p.ativo } : p))
-    );
+    if (res.ok) {
+      setPromos((prev) =>
+        prev.map((p) => (p.id === promo.id ? { ...p, ativo: !p.ativo } : p))
+      );
+    }
   }
 
   async function deletar(id: string) {
     if (!confirm("Deletar esta promo?")) return;
-    const supabase = createClient();
-    await supabase.from("promos").delete().eq("id", id);
-    setPromos((prev) => prev.filter((p) => p.id !== id));
+
+    const res = await fetch(`/api/admin/promos/${id}`, { method: "DELETE" });
+
+    if (res.ok) {
+      setPromos((prev) => prev.filter((p) => p.id !== id));
+    } else {
+      alert("Erro ao deletar. Tente novamente.");
+    }
   }
 
   return (
