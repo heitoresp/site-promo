@@ -1,4 +1,4 @@
-# 🔥 PromoHot — Guia de Setup Completo
+# 🔥 ApenasPromo — Guia de Setup Completo
 
 ## Pré-requisitos
 

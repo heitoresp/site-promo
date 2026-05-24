@@ -8,8 +8,8 @@ const inter = Inter({
   display: "swap",
 });
 
-const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME ?? "PromoHot";
-const APP_URL  = process.env.NEXT_PUBLIC_APP_URL  ?? "https://promohot.com.br";
+const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME ?? "ApenasPromo";
+const APP_URL  = process.env.NEXT_PUBLIC_APP_URL  ?? "https://apenaspromo.com.br";
 
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),

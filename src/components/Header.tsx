@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition, Suspense } from "react";
 import { Search, Flame, Zap } from "lucide-react";
 
-const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME ?? "PromoHot";
+const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME ?? "ApenasPromo";
 
 function SearchBar() {
   const router = useRouter();
@@ -64,8 +64,8 @@ export function Header() {
             <div className="absolute inset-0 rounded-lg bg-brand-500 opacity-0 group-hover:opacity-30 blur-md transition-opacity" />
           </div>
           <span className="font-extrabold text-xl tracking-tight hidden sm:block">
-            <span className="text-white">{APP_NAME.slice(0, -3)}</span>
-            <span className="text-brand-500">{APP_NAME.slice(-3)}</span>
+            <span className="text-white">{APP_NAME.slice(0, -5)}</span>
+            <span className="text-brand-500">{APP_NAME.slice(-5)}</span>
           </span>
         </Link>
 

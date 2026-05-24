@@ -4,7 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Flame, Mail, CheckCircle } from "lucide-react";
 
-const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME ?? "PromoHot";
+const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME ?? "ApenasPromo";
 
 export default function LoginPage() {
   const [email, setEmail]     = useState("");
