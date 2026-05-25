@@ -9,7 +9,7 @@ import type { Promo, Categoria, Loja, CreatePromoPayload } from "@/types/promo";
 import { formatarPreco, tempoRelativo } from "@/lib/utils";
 import {
   Plus, LogOut, Flame, Zap, TrendingUp, Bot,
-  Trash2, Eye, EyeOff, ExternalLink, X, Check
+  Trash2, Eye, EyeOff, ExternalLink, X, Check, Flag
 } from "lucide-react";
 
 interface Props {
@@ -196,6 +196,7 @@ export function AdminDashboard({ user, promos: promosIniciais, categorias, lojas
                   <th className="px-4 py-3">Loja</th>
                   <th className="px-4 py-3 hidden md:table-cell">Origem</th>
                   <th className="px-4 py-3 hidden md:table-cell">Cliques</th>
+                  <th className="px-4 py-3 hidden md:table-cell">Denúncias</th>
                   <th className="px-4 py-3 hidden lg:table-cell">Criado</th>
                   <th className="px-4 py-3 text-right">Ações</th>
                 </tr>
@@ -232,6 +233,16 @@ export function AdminDashboard({ user, promos: promosIniciais, categorias, lojas
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell text-gray-400">
                       {promo.cliques}
+                    </td>
+                    <td className="px-4 py-3 hidden md:table-cell">
+                      {(promo.denuncias ?? 0) > 0 ? (
+                        <span className="inline-flex items-center gap-1 text-red-400 font-semibold">
+                          <Flag size={12} />
+                          {promo.denuncias}
+                        </span>
+                      ) : (
+                        <span className="text-gray-600">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 hidden lg:table-cell text-gray-500 text-xs">
                       {tempoRelativo(promo.criado_em)}

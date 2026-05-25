@@ -19,6 +19,7 @@ export interface Promo {
   ativo: boolean;
   cliques: number;
   temperatura: number | null; // 0–100, calculado automaticamente via ML
+  denuncias: number | null;   // contador de denúncias de promo expirada
   // Campos extras da view promos_hot
   is_nova?: boolean;
   is_hot?: boolean;
