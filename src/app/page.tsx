@@ -158,7 +158,7 @@ export default async function HomePage({
 
         {/* Grid de promos */}
         <Suspense fallback={<GridSkeleton />}>
-          <PromoFeedRealtime promosIniciais={promos} />
+          <PromoFeedRealtime promosIniciais={promos} categoria={params.categoria} />
         </Suspense>
 
       </main>

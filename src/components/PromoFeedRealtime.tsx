@@ -8,11 +8,18 @@ import { Sparkles } from "lucide-react";
 
 interface PromoFeedRealtimeProps {
   promosIniciais: Promo[];
+  categoria?: string;
 }
 
-export function PromoFeedRealtime({ promosIniciais }: PromoFeedRealtimeProps) {
+export function PromoFeedRealtime({ promosIniciais, categoria }: PromoFeedRealtimeProps) {
   const [promos, setPromos] = useState<Promo[]>(promosIniciais);
   const [novaPromo, setNovaPromo] = useState<Promo | null>(null);
+
+  // Sincroniza quando o filtro de categoria muda (navegação client-side)
+  useEffect(() => {
+    setPromos(promosIniciais);
+    setNovaPromo(null);
+  }, [promosIniciais]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -29,8 +36,11 @@ export function PromoFeedRealtime({ promosIniciais }: PromoFeedRealtimeProps) {
         },
         (payload) => {
           const nova = payload.new as Promo;
-          setNovaPromo(nova);
-          setPromos((prev) => [nova, ...prev]);
+          // Só adiciona se for da categoria atual (ou se não houver filtro)
+          if (!categoria || nova.categoria === categoria) {
+            setNovaPromo(nova);
+            setPromos((prev) => [nova, ...prev]);
+          }
         }
       )
       .subscribe();
@@ -38,7 +48,7 @@ export function PromoFeedRealtime({ promosIniciais }: PromoFeedRealtimeProps) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [categoria]);
 
   return (
     <div>

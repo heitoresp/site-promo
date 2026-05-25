@@ -25,7 +25,7 @@ const CATEGORIAS_KEYWORDS: Record<string, string[]> = {
     "iphone", "samsung", "xiaomi", "motorola", "celular", "smartphone",
     "tv", "televisão", "televisao", "smart tv", "monitor", "notebook",
     "laptop", "tablet", "ipad", "airpods", "fone", "headphone", "earbuds",
-    "câmera", "camera", "impressora", "projetor", "drone", "smartwatch",
+    "headset", "câmera", "camera", "impressora", "projetor", "drone", "smartwatch",
     "alexa", "echo", "kindle", "playstation", "xbox", "nintendo switch",
     "ssd", "hd", "pendrive", "carregador", "cabo usb", "roteador", "wifi",
     "mouse", "teclado", "webcam", "microfone", "caixa de som", "speaker",
