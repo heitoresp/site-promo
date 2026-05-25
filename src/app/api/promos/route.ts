@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import type { CreatePromoPayload } from "@/types/promo";
+import { calcularTemperatura } from "@/lib/temperatura";
 
 // ============================================================
 // Helpers
@@ -174,6 +175,9 @@ export async function POST(request: NextRequest) {
 
   const supabase = createServiceRoleClient();
 
+  // Calcula temperatura em paralelo com a inserção
+  const temperatura = await calcularTemperatura(body.titulo, body.preco_promo);
+
   const { data, error } = await supabase
     .from("promos")
     .insert({
@@ -188,6 +192,7 @@ export async function POST(request: NextRequest) {
       imagem_url:     body.imagem_url ?? null,
       origem:         body.origem ?? "whatsapp_bot",
       expira_em:      body.expira_em ?? null,
+      temperatura,
     })
     .select()
     .single();

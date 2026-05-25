@@ -11,6 +11,7 @@ import type { Promo } from "@/types/promo";
 import {
   formatarPreco, formatarDesconto, tempoRelativo, isNova, isExpirando, urlWhatsApp
 } from "@/lib/utils";
+import { labelTemperatura } from "@/lib/temperatura";
 
 interface PromoCardProps {
   promo: Promo;
@@ -22,6 +23,7 @@ export function PromoCard({ promo }: PromoCardProps) {
   const nova      = isNova(promo.criado_em);
   const expirando = isExpirando(promo.expira_em);
   const isHot     = promo.is_hot || promo.cliques > 50;
+  const temp      = labelTemperatura(promo.temperatura ?? null);
 
   async function handlePegarPromo(e: React.MouseEvent) {
     e.preventDefault();
@@ -113,6 +115,15 @@ export function PromoCard({ promo }: PromoCardProps) {
             {promo.titulo}
           </h3>
         </Link>
+
+        {/* Temperatura da promo */}
+        {promo.temperatura !== null && promo.temperatura !== undefined && (
+          <div className={`flex items-center gap-1.5 text-xs font-semibold ${temp.cor}`}>
+            <span>{temp.emoji}</span>
+            <span>{temp.label}</span>
+            <span className="text-gray-600 font-normal">· {promo.temperatura}pts</span>
+          </div>
+        )}
 
         {/* Preços */}
         <div className="flex items-end gap-2">

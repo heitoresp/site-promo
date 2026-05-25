@@ -18,6 +18,7 @@ export interface Promo {
   atualizado_em: string;
   ativo: boolean;
   cliques: number;
+  temperatura: number | null; // 0–100, calculado automaticamente via ML
   // Campos extras da view promos_hot
   is_nova?: boolean;
   is_hot?: boolean;
