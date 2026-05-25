@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition, Suspense } from "react";
-import { Search, Zap } from "lucide-react";
+import { Search, Zap, TrendingUp } from "lucide-react";
 import Image from "next/image";
 import { UserMenu } from "./UserMenu";
 
@@ -87,10 +87,10 @@ export function Header() {
         {/* Links de navegação */}
         <nav className="hidden md:flex items-center gap-1 shrink-0">
           <Link
-            href="/?hot=true"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all"
+            href="/ranking"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/10 transition-all"
           >
-            <Zap size={14} />
+            <TrendingUp size={14} />
             Em Alta
           </Link>
           <Link
