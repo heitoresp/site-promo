@@ -148,6 +148,28 @@ body {
     color: var(--text-muted);
   }
 
+  /* Select — fundo sólido para os dropdowns ficarem legíveis */
+  select.search-input {
+    background: #1e1e2a;
+    cursor: pointer;
+  }
+
+  select.search-input:focus {
+    background: #22222f;
+  }
+
+  /* Options do dropdown */
+  select.search-input option {
+    background: #1e1e2a;
+    color: #f1f5f9;
+    padding: 8px 12px;
+  }
+
+  select.search-input option:checked {
+    background: #f97316;
+    color: #ffffff;
+  }
+
   /* ----- GLASS CARD (admin/modals) ----- */
   .glass-card {
     background: rgba(22, 22, 31, 0.8);
