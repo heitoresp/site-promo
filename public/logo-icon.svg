@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="ApenasPromo">
+  <title>ApenasPromo ícone</title>
+  <!-- Raio laranja sobre fundo transparente — para usar no código/header -->
+  <path
+    d="M72,18 C78,18 83,23 79,33 L64,58 L75,58 C81,58 84,64 80,69 L52,104 C49,108 43,107 43,102 C43,98 46,95 46,95 L58,72 L46,72 C40,72 37,66 41,61 L62,22 C64,18 68,18 72,18Z"
+    fill="none"
+    stroke="#F97316"
+    stroke-width="7"
+    stroke-linejoin="round"
+    stroke-linecap="round"
+  />
+</svg>

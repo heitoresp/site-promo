@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition, Suspense } from "react";
-import { Search, Flame, Zap } from "lucide-react";
+import { Search, Zap } from "lucide-react";
+import Image from "next/image";
 
 const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME ?? "ApenasPromo";
 
@@ -56,12 +57,16 @@ export function Header() {
           className="flex items-center gap-2 shrink-0 group"
           aria-label={APP_NAME}
         >
-          <div className="relative">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-glow-orange group-hover:scale-110 transition-transform">
-              <Flame size={16} className="text-white" />
-            </div>
-            {/* Glow animado no logo */}
-            <div className="absolute inset-0 rounded-lg bg-brand-500 opacity-0 group-hover:opacity-30 blur-md transition-opacity" />
+          <div className="relative group-hover:scale-110 transition-transform">
+            <Image
+              src="/logo.svg"
+              alt={APP_NAME}
+              width={36}
+              height={36}
+              className="rounded-full shadow-glow-orange"
+              priority
+            />
+            <div className="absolute inset-0 rounded-full bg-brand-500 opacity-0 group-hover:opacity-20 blur-md transition-opacity" />
           </div>
           <span className="font-extrabold text-xl tracking-tight hidden sm:block">
             <span className="text-white">{APP_NAME.slice(0, -5)}</span>
