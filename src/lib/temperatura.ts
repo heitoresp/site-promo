@@ -50,11 +50,28 @@ async function buscarPrecoML(titulo: string): Promise<number | null> {
 
     const url = `https://api.mercadolibre.com/sites/MLB/search?q=${encodeURIComponent(query)}&limit=12&condition=new`;
 
-    const res = await fetch(url, {
-      signal: AbortSignal.timeout(5000), // timeout de 5s
-    });
+    // Timeout manual — AbortSignal.timeout() pode não estar disponível em todos os ambientes
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
 
-    if (!res.ok) return null;
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          "User-Agent": "ApenasPromo/1.0 (price comparison bot)",
+          "Accept": "application/json",
+        },
+        cache: "no-store",
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+
+    if (!res.ok) {
+      console.warn(`[ML API] status ${res.status} para query: "${query}"`);
+      return null;
+    }
 
     const data: MLSearchResponse = await res.json();
 
@@ -65,9 +82,15 @@ async function buscarPrecoML(titulo: string): Promise<number | null> {
 
     if (precos.length === 0) return null;
 
-    return mediana(precos);
-  } catch {
-    // Timeout ou erro de rede — não bloqueia a criação da promo
+    const resultado = mediana(precos);
+    console.log(`[ML API] "${query}" → mediana R$${resultado} (${precos.length} resultados)`);
+    return resultado;
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      console.warn("[ML API] timeout para:", titulo);
+    } else {
+      console.warn("[ML API] erro:", err);
+    }
     return null;
   }
 }
