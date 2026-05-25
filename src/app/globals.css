@@ -107,9 +107,9 @@ body {
   /* ----- BADGE DESCONTO ----- */
   .badge-desconto {
     @apply inline-flex items-center px-2.5 py-1 rounded-xl text-sm font-extrabold;
-    background: linear-gradient(135deg, rgba(249,115,22,0.2), rgba(249,115,22,0.1));
-    color: var(--brand-light);
-    border: 1px solid rgba(249, 115, 22, 0.3);
+    background: linear-gradient(135deg, rgba(249,115,22,0.9), rgba(220,88,8,0.95));
+    color: #fff;
+    border: 1px solid rgba(249, 115, 22, 0.6);
   }
 
   /* ----- BOTÃO PEGAR PROMO ----- */
