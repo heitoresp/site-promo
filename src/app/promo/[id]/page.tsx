@@ -8,10 +8,8 @@ import type { Promo } from "@/types/promo";
 import {
   formatarPreco, formatarDesconto, tempoRelativo, isNova, urlWhatsApp
 } from "@/lib/utils";
-import {
-  ExternalLink, ArrowLeft, Share2, Copy, Tag,
-  Flame, Sparkles, ShoppingBag, Clock
-} from "lucide-react";
+import { ArrowLeft, Flame, Sparkles, ShoppingBag, Clock } from "lucide-react";
+import { PegarPromoButton, CupomButton, ShareButton } from "./PromoPageClient";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -187,15 +185,9 @@ export default async function PromoPage({ params }: PageProps) {
             <div className="flex flex-col gap-3 mt-auto">
               <PegarPromoButton promoId={promo.id} link={promo.link_afiliado} />
 
-              <a
+              <ShareButton
                 href={urlWhatsApp(promo.titulo, `${process.env.NEXT_PUBLIC_APP_URL}/promo/${promo.id}`)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-white/10 text-sm text-gray-300 hover:text-white hover:border-white/20 transition-all"
-              >
-                <Share2 size={15} />
-                Compartilhar no WhatsApp
-              </a>
+              />
             </div>
           </div>
         </div>
@@ -204,52 +196,3 @@ export default async function PromoPage({ params }: PageProps) {
   );
 }
 
-// ---- Client components inline (Server Components não podem ter handlers) ----
-// Mas em Next.js 15, podemos usar "use client" em arquivos separados.
-// Aqui os botões são simplificados como links/forms server-side.
-
-function PegarPromoButton({ promoId, link }: { promoId: string; link: string }) {
-  return (
-    <form
-      action={async () => {
-        "use server";
-        const supabase = createServiceRoleClient();
-        await supabase.rpc("incrementar_cliques", { promo_id: promoId });
-      }}
-    >
-      <a
-        href={link}
-        target="_blank"
-        rel="noopener noreferrer sponsored"
-        className="btn-promo text-center block"
-        onClick={async () => {
-          await fetch(`/api/promos/${promoId}/click`, { method: "PATCH" });
-        }}
-      >
-        <ExternalLink size={16} className="inline mr-2" />
-        Pegar Promo Agora
-      </a>
-    </form>
-  );
-}
-
-function CupomButton({ cupom }: { cupom: string }) {
-  return (
-    <div className="flex items-center justify-between gap-2 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/25">
-      <div className="flex items-center gap-2">
-        <Tag size={14} className="text-amber-400" />
-        <span className="font-mono font-bold text-amber-300 tracking-widest text-sm">
-          {cupom}
-        </span>
-      </div>
-      <button
-        type="button"
-        className="text-xs text-amber-400 hover:text-amber-300 transition-colors flex items-center gap-1"
-        onClick={() => navigator.clipboard.writeText(cupom)}
-      >
-        <Copy size={13} />
-        Copiar
-      </button>
-    </div>
-  );
-}
