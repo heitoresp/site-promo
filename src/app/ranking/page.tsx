@@ -1,7 +1,7 @@
 import Link from "next/link";
-import Image from "next/image";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { Header } from "@/components/Header";
+import { PromoImage } from "@/components/PromoImage";
 import type { Promo } from "@/types/promo";
 import { formatarPreco, formatarDesconto, tempoRelativo } from "@/lib/utils";
 import { labelTemperatura } from "@/lib/temperatura";
@@ -79,7 +79,6 @@ function BarraTemperatura({ temp }: { temp: number }) {
 function RankingItem({ promo, posicao }: { promo: Promo; posicao: number }) {
   const meta = getPosMeta(posicao);
   const temp = labelTemperatura(promo.temperatura ?? null);
-  const imagemFallback = `https://placehold.co/80x80/16161f/f97316?text=${encodeURIComponent(promo.loja)}`;
 
   return (
     <Link
@@ -93,13 +92,12 @@ function RankingItem({ promo, posicao }: { promo: Promo; posicao: number }) {
 
       {/* Imagem */}
       <div className="shrink-0 relative w-14 h-14 rounded-xl overflow-hidden bg-black/30 ring-1 ring-white/10">
-        <Image
-          src={promo.imagem_url ?? imagemFallback}
+        <PromoImage
+          src={promo.imagem_url}
           alt={promo.titulo}
-          fill
-          className="object-cover group-hover:scale-105 transition-transform duration-300"
+          loja={promo.loja}
           sizes="56px"
-          onError={(e) => { (e.target as HTMLImageElement).src = imagemFallback; }}
+          className="object-cover group-hover:scale-105 transition-transform duration-300"
         />
       </div>
 
@@ -168,7 +166,6 @@ function RankingItem({ promo, posicao }: { promo: Promo; posicao: number }) {
 function PodiumCard({ promo, posicao }: { promo: Promo; posicao: number }) {
   const meta = getPosMeta(posicao);
   const temp = labelTemperatura(promo.temperatura ?? null);
-  const imagemFallback = `https://placehold.co/400x300/16161f/f97316?text=${encodeURIComponent(promo.loja)}`;
 
   return (
     <Link
@@ -191,13 +188,12 @@ function PodiumCard({ promo, posicao }: { promo: Promo; posicao: number }) {
 
       {/* Imagem */}
       <div className="relative aspect-[4/3] overflow-hidden bg-black/30">
-        <Image
-          src={promo.imagem_url ?? imagemFallback}
+        <PromoImage
+          src={promo.imagem_url}
           alt={promo.titulo}
-          fill
-          className="object-cover group-hover:scale-105 transition-transform duration-500"
+          loja={promo.loja}
           sizes="(max-width: 768px) 100vw, 33vw"
-          onError={(e) => { (e.target as HTMLImageElement).src = imagemFallback; }}
+          className="object-cover group-hover:scale-105 transition-transform duration-500"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
         <div className="absolute bottom-2 left-2">
