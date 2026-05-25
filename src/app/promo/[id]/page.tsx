@@ -10,6 +10,8 @@ import {
 } from "@/lib/utils";
 import { ArrowLeft, Flame, Sparkles, ShoppingBag, Clock } from "lucide-react";
 import { PegarPromoButton, CupomButton, ShareButton } from "./PromoPageClient";
+import { ReportButton } from "@/components/ReportButton";
+import { ComentariosSection } from "@/components/ComentariosSection";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -172,13 +174,16 @@ export default async function PromoPage({ params }: PageProps) {
             )}
 
             {/* Engajamento */}
-            <div className="text-xs text-gray-600 flex items-center gap-4">
-              <span>Postada {tempoRelativo(promo.criado_em)}</span>
-              {promo.cliques > 0 && (
-                <span className="flex items-center gap-1">
-                  <Flame size={12} /> {promo.cliques} cliques
-                </span>
-              )}
+            <div className="text-xs text-gray-600 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <span>Postada {tempoRelativo(promo.criado_em)}</span>
+                {promo.cliques > 0 && (
+                  <span className="flex items-center gap-1">
+                    <Flame size={12} /> {promo.cliques} cliques
+                  </span>
+                )}
+              </div>
+              <ReportButton promoId={promo.id} />
             </div>
 
             {/* Botões */}
@@ -190,6 +195,11 @@ export default async function PromoPage({ params }: PageProps) {
               />
             </div>
           </div>
+        </div>
+
+        {/* Comentários */}
+        <div className="mt-8 border-t border-white/5 pt-8">
+          <ComentariosSection promoId={promo.id} />
         </div>
       </main>
     </div>
