@@ -90,21 +90,11 @@ CREATE TABLE IF NOT EXISTS categorias (
 );
 
 INSERT INTO categorias (slug, nome, icone, ordem) VALUES
-  ('geral',        'Geral',          '🛍️',  0),
   ('eletronicos',  'Eletrônicos',    '📱',  1),
-  ('informatica',  'Informática',    '💻',  2),
+  ('moda',         'Moda',           '👕',  2),
   ('games',        'Games',          '🎮',  3),
-  ('casa',         'Casa & Deco',    '🏠',  4),
-  ('moda',         'Moda',           '👕',  5),
-  ('beleza',       'Beleza',         '💄',  6),
-  ('esportes',     'Esportes',       '⚽',  7),
-  ('alimentacao',  'Alimentação',    '🍕',  8),
-  ('viagens',      'Viagens',        '✈️',  9),
-  ('livros',       'Livros',         '📚', 10),
-  ('saude',        'Saúde',          '💊', 11),
-  ('bebes',        'Bebês',          '👶', 12),
-  ('pets',         'Pets',           '🐾', 13),
-  ('outros',       'Outros',         '📦', 99)
+  ('casa',         'Casa',           '🏠',  4),
+  ('alimentacao',  'Alimentação',    '🍔',  5)
 ON CONFLICT (slug) DO NOTHING;
 
 -- ============================================================
