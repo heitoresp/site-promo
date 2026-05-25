@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, Mail, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -14,6 +15,10 @@ export function LoginModal({ onClose }: LoginModalProps) {
   const [enviado, setEnviado]   = useState(false);
   const [loading, setLoading]   = useState(false);
   const [erro, setErro]         = useState("");
+  const [mounted, setMounted]   = useState(false);
+
+  // Monta o portal apenas no cliente (evita hydration mismatch)
+  useEffect(() => { setMounted(true); }, []);
 
   async function handleGoogle() {
     setLoading(true);
@@ -35,10 +40,10 @@ export function LoginModal({ onClose }: LoginModalProps) {
     }
   }
 
-  return (
-    // Overlay
+  const modal = (
+    // Overlay — renderizado via portal direto no <body>, fora do Header
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
       onClick={onClose}
     >
       {/* Fundo escuro */}
@@ -137,4 +142,7 @@ export function LoginModal({ onClose }: LoginModalProps) {
       </div>
     </div>
   );
+
+  if (!mounted) return null;
+  return createPortal(modal, document.body);
 }
