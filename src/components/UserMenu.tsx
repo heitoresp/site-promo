@@ -38,18 +38,20 @@ export function UserMenu() {
     <div className="relative">
       <button
         onClick={() => setShowMenu((v) => !v)}
-        className="flex items-center gap-2 rounded-full hover:ring-2 hover:ring-brand-500/50 transition-all"
+        className="flex items-center rounded-full hover:ring-2 hover:ring-brand-500/50 transition-all overflow-hidden"
+        title={nome}
       >
         {avatar ? (
           <Image
             src={avatar}
             alt={nome}
-            width={32}
-            height={32}
-            className="rounded-full"
+            width={34}
+            height={34}
+            className="rounded-full w-[34px] h-[34px] object-cover"
+            referrerPolicy="no-referrer"
           />
         ) : (
-          <div className="w-8 h-8 rounded-full bg-brand-600 flex items-center justify-center text-xs font-bold text-white">
+          <div className="w-[34px] h-[34px] rounded-full bg-brand-600 flex items-center justify-center text-xs font-bold text-white">
             {iniciais}
           </div>
         )}
