@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
   const supabase = createServiceRoleClient();
 
   // Calcula temperatura em paralelo com a inserção
-  const temperatura = await calcularTemperatura(body.titulo, body.preco_promo);
+  const temperatura = await calcularTemperatura(body.titulo, body.preco_promo, body.preco_original);
 
   const { data, error } = await supabase
     .from("promos")
