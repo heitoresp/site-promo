@@ -43,6 +43,15 @@ function validarImagem(url: string | null, hostname: string): string | null {
   return url;
 }
 
+// Nomes de sites a ignorar no JSON-LD (não são nomes de produto)
+const NOMES_SITE = new Set([
+  "mercado libre", "mercadolivre", "mercado livre",
+  "amazon", "amazon.com.br", "shopee",
+  "magazine luiza", "magalu", "americanas",
+  "netshoes", "aliexpress", "casas bahia",
+  "extra", "submarino",
+]);
+
 // Tenta extrair dados do JSON-LD (Product schema)
 function extrairJsonLd(html: string): {
   titulo?: string; imagem?: string; descricao?: string;
@@ -56,30 +65,34 @@ function extrairJsonLd(html: string): {
       const raw = match[1].trim();
       const data = JSON.parse(raw);
 
-      // Pode ser um array ou objeto direto
       const items: unknown[] = Array.isArray(data) ? data : [data];
 
       for (const item of items) {
         if (typeof item !== "object" || !item) continue;
         const obj = item as Record<string, unknown>;
-        if (obj["@type"] === "Product" || obj["@type"] === "ItemPage") {
-          const titulo = typeof obj.name === "string" ? obj.name : undefined;
 
-          let imagem: string | undefined;
-          if (typeof obj.image === "string") imagem = obj.image;
-          else if (Array.isArray(obj.image)) imagem = String(obj.image[0]);
-          else if (obj.image && typeof obj.image === "object") {
-            const img = obj.image as Record<string, unknown>;
-            imagem = typeof img.url === "string" ? img.url : undefined;
-          }
+        // Só aceita tipos de produto
+        if (obj["@type"] !== "Product" && obj["@type"] !== "ItemPage") continue;
 
-          const descricao =
-            typeof obj.description === "string"
-              ? obj.description.slice(0, 500)
-              : undefined;
+        const titulo = typeof obj.name === "string" ? obj.name : undefined;
 
-          if (titulo) return { titulo, imagem, descricao };
+        // Rejeita se o nome for o nome do site e não do produto
+        if (!titulo || NOMES_SITE.has(titulo.toLowerCase().trim())) continue;
+
+        let imagem: string | undefined;
+        if (typeof obj.image === "string") imagem = obj.image;
+        else if (Array.isArray(obj.image)) imagem = String(obj.image[0]);
+        else if (obj.image && typeof obj.image === "object") {
+          const img = obj.image as Record<string, unknown>;
+          imagem = typeof img.url === "string" ? img.url : undefined;
         }
+
+        const descricao =
+          typeof obj.description === "string"
+            ? obj.description.slice(0, 500)
+            : undefined;
+
+        return { titulo, imagem, descricao };
       }
     } catch {
       // JSON inválido, tenta o próximo
@@ -104,8 +117,17 @@ function extrairMeta(html: string, property: string): string | null {
   }
 
   if (property === "title") {
-    const titleTag = html.match(/<title[^>]*>([^<]{1,200})<\/title>/i);
-    if (titleTag?.[1]) return titleTag[1].trim();
+    const titleTag = html.match(/<title[^>]*>([^<]{1,300})<\/title>/i);
+    if (titleTag?.[1]) {
+      // Pega só a parte antes de " | " ou " - Site" para evitar "Produto | Mercado Livre"
+      const raw = titleTag[1].trim();
+      const partes = raw.split(/\s*[\|]\s*/);
+      // Se tiver mais de uma parte, pega a mais longa (geralmente é o título do produto)
+      if (partes.length > 1) {
+        return partes.sort((a, b) => b.length - a.length)[0].trim();
+      }
+      return raw;
+    }
   }
 
   return null;
