@@ -12,6 +12,7 @@ import {
   formatarPreco, formatarDesconto, tempoRelativo, isNova, isExpirando, urlWhatsApp
 } from "@/lib/utils";
 import { labelTemperatura } from "@/lib/temperatura";
+import { StonksBar } from "./StonksBar";
 
 interface PromoCardProps {
   promo: Promo;
@@ -178,6 +179,9 @@ export function PromoCard({ promo }: PromoCardProps) {
             )}
           </div>
         </div>
+
+        {/* Votação Stonks */}
+        <StonksBar promoId={promo.id} compact />
 
         {/* CTA */}
         <button
