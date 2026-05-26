@@ -78,7 +78,11 @@ export async function POST(req: NextRequest) {
 
   if (error) {
     console.error("[Submeter promo]", error);
-    return NextResponse.json({ error: "Erro ao salvar" }, { status: 500 });
+    // Erro de coluna não existente = SQL migration não foi rodado
+    const msg = error.message?.includes("column")
+      ? "Configuração pendente: rode o SQL de migração no Supabase (migration 005)"
+      : `Erro ao salvar: ${error.message}`;
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 
   return NextResponse.json({ id: data.id, linkAfiliado }, { status: 201 });
