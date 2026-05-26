@@ -9,12 +9,14 @@ import type { Promo, Categoria, Loja, CreatePromoPayload } from "@/types/promo";
 import { formatarPreco, tempoRelativo } from "@/lib/utils";
 import {
   Plus, LogOut, Flame, Zap, TrendingUp, Bot,
-  Trash2, Eye, EyeOff, ExternalLink, X, Check, Flag
+  Trash2, Eye, EyeOff, ExternalLink, X, Check, Flag,
+  Clock, CheckCircle, XCircle, User,
 } from "lucide-react";
 
 interface Props {
   user: User;
   promos: Promo[];
+  pendentes: Promo[];
   categorias: Categoria[];
   lojas: Loja[];
   stats: { total: number; ativas: number; bot: number; cliques: number };
@@ -33,9 +35,11 @@ const FORM_VAZIO: CreatePromoPayload = {
   origem:         "manual",
 };
 
-export function AdminDashboard({ user, promos: promosIniciais, categorias, lojas, stats }: Props) {
+export function AdminDashboard({ user, promos: promosIniciais, pendentes: pendentesIniciais, categorias, lojas, stats }: Props) {
   const router   = useRouter();
-  const [promos, setPromos] = useState(promosIniciais);
+  const [promos, setPromos]       = useState(promosIniciais);
+  const [pendentes, setPendentes] = useState(pendentesIniciais);
+  const [aba, setAba]             = useState<"promos" | "pendentes">("promos");
   const [form, setForm]     = useState<CreatePromoPayload>(FORM_VAZIO);
   const [loading, setLoading] = useState(false);
   const [erro, setErro]       = useState("");
@@ -107,6 +111,24 @@ export function AdminDashboard({ user, promos: promosIniciais, categorias, lojas
     }
   }
 
+  async function aprovar(id: string) {
+    const res = await fetch(`/api/admin/promos/${id}/aprovar`, { method: "POST" });
+    if (res.ok) {
+      const aprovada = pendentes.find(p => p.id === id);
+      setPendentes(prev => prev.filter(p => p.id !== id));
+      if (aprovada) setPromos(prev => [{ ...aprovada, status: "ativo", ativo: true }, ...prev]);
+      setSucesso("Promo aprovada e publicada!");
+    }
+  }
+
+  async function rejeitar(id: string) {
+    const res = await fetch(`/api/admin/promos/${id}/rejeitar`, { method: "POST" });
+    if (res.ok) {
+      setPendentes(prev => prev.filter(p => p.id !== id));
+      setSucesso("Promo rejeitada.");
+    }
+  }
+
   async function deletar(id: string) {
     if (!confirm("Deletar esta promo?")) return;
 
@@ -166,15 +188,33 @@ export function AdminDashboard({ user, promos: promosIniciais, categorias, lojas
           ))}
         </div>
 
-        {/* Botão Nova Promo + Toast */}
-        <div className="flex items-center justify-between">
-          <h2 className="font-bold text-white text-lg">Promoções</h2>
+        {/* Tabs */}
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-white/5 border border-white/5 w-fit">
           <button
-            onClick={() => { setModal(true); setErro(""); setSucesso(""); }}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-sm font-bold transition-all"
+            onClick={() => setAba("promos")}
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
+              aba === "promos"
+                ? "bg-white/10 text-white"
+                : "text-gray-500 hover:text-gray-300"
+            }`}
           >
-            <Plus size={16} />
-            Nova Promo
+            Promos Ativas
+          </button>
+          <button
+            onClick={() => setAba("pendentes")}
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+              aba === "pendentes"
+                ? "bg-white/10 text-white"
+                : "text-gray-500 hover:text-gray-300"
+            }`}
+          >
+            <Clock size={13} />
+            Pendentes
+            {pendentes.length > 0 && (
+              <span className="min-w-[18px] h-[18px] rounded-full bg-yellow-500 text-black text-xs font-extrabold flex items-center justify-center">
+                {pendentes.length}
+              </span>
+            )}
           </button>
         </div>
 
@@ -184,6 +224,76 @@ export function AdminDashboard({ user, promos: promosIniciais, categorias, lojas
             {sucesso}
           </div>
         )}
+
+        {/* ── ABA PENDENTES ── */}
+        {aba === "pendentes" && (
+          <div className="space-y-3">
+            {pendentes.length === 0 ? (
+              <div className="glass-card p-10 text-center text-gray-600">
+                <CheckCircle size={32} className="text-green-500/40 mx-auto mb-3" />
+                Nenhuma promo aguardando aprovação
+              </div>
+            ) : (
+              pendentes.map(promo => (
+                <div key={promo.id} className="glass-card p-5 flex gap-4 items-start">
+                  {/* Info */}
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="font-semibold text-gray-100 line-clamp-2">{promo.titulo}</p>
+                      <span className="shrink-0 text-xs text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <Clock size={10} /> Pendente
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
+                      <span className="font-bold text-brand-400 text-sm">{formatarPreco(promo.preco_promo)}</span>
+                      <span>{promo.loja}</span>
+                      <span>{promo.categoria}</span>
+                      <span className="flex items-center gap-1"><User size={10} /> Usuário</span>
+                      <span>{tempoRelativo(promo.criado_em)}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="text-gray-600 break-all">{promo.link_afiliado}</span>
+                      <a href={promo.link_afiliado} target="_blank" rel="noopener noreferrer"
+                        className="shrink-0 text-brand-400 hover:text-brand-300">
+                        <ExternalLink size={12} />
+                      </a>
+                    </div>
+                  </div>
+                  {/* Ações */}
+                  <div className="flex flex-col gap-2 shrink-0">
+                    <button
+                      onClick={() => aprovar(promo.id)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500/15 border border-green-500/30 text-green-400 hover:bg-green-500/25 text-sm font-bold transition-all"
+                    >
+                      <CheckCircle size={14} /> Aprovar
+                    </button>
+                    <button
+                      onClick={() => rejeitar(promo.id)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 text-sm font-bold transition-all"
+                    >
+                      <XCircle size={14} /> Rejeitar
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* ── ABA PROMOS ATIVAS ── */}
+        {aba === "promos" && (
+        <>
+        {/* Botão Nova Promo */}
+        <div className="flex items-center justify-between">
+          <h2 className="font-bold text-white text-lg">Promoções Ativas</h2>
+          <button
+            onClick={() => { setModal(true); setErro(""); setSucesso(""); }}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-sm font-bold transition-all"
+          >
+            <Plus size={16} />
+            Nova Promo
+          </button>
+        </div>
 
         {/* Tabela de promos */}
         <div className="glass-card overflow-hidden">
@@ -290,6 +400,8 @@ export function AdminDashboard({ user, promos: promosIniciais, categorias, lojas
             )}
           </div>
         </div>
+        </>
+        )}
       </main>
 
       {/* Modal de criação */}

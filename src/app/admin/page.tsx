@@ -11,18 +11,25 @@ export default async function AdminPage() {
 
   const service = createServiceRoleClient();
 
-  const [promosData, categoriasData, lojasData, statsData] = await Promise.all([
+  const [promosData, pendentesData, categoriasData, lojasData, statsData] = await Promise.all([
     service
       .from("promos")
       .select("*")
+      .eq("status", "ativo")
       .order("criado_em", { ascending: false })
       .limit(50),
+    service
+      .from("promos")
+      .select("*")
+      .eq("status", "pendente")
+      .order("criado_em", { ascending: false }),
     service.from("categorias").select("*").order("ordem"),
     service.from("lojas").select("*").order("ordem"),
     service.from("promos").select("id, ativo, cliques, origem", { count: "exact" }),
   ]);
 
   const promos     = (promosData.data     ?? []) as Promo[];
+  const pendentes  = (pendentesData.data  ?? []) as Promo[];
   const categorias = (categoriasData.data ?? []) as Categoria[];
   const lojas      = (lojasData.data      ?? []) as Loja[];
 
@@ -37,6 +44,7 @@ export default async function AdminPage() {
     <AdminDashboard
       user={user}
       promos={promos}
+      pendentes={pendentes}
       categorias={categorias}
       lojas={lojas}
       stats={stats}

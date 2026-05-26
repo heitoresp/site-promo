@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition, Suspense } from "react";
-import { Search, Zap, TrendingUp } from "lucide-react";
+import { Search, TrendingUp, PlusCircle } from "lucide-react";
 import Image from "next/image";
 import { UserMenu } from "./UserMenu";
 
@@ -92,6 +92,13 @@ export function Header() {
           >
             <TrendingUp size={14} />
             Em Alta
+          </Link>
+          <Link
+            href="/submeter"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-brand-400 hover:text-brand-300 hover:bg-brand-500/10 transition-all"
+          >
+            <PlusCircle size={14} />
+            Enviar Promo
           </Link>
           <Link
             href="/admin"
