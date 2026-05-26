@@ -46,12 +46,6 @@ export async function POST(req: NextRequest) {
   // Calcula temperatura inicial
   const temperatura = await calcularTemperatura(titulo, preco_promo, preco_original ?? null);
 
-  // Calcula desconto percentual
-  const desconto_pct =
-    preco_original && preco_original > preco_promo
-      ? Math.round((1 - preco_promo / preco_original) * 100)
-      : null;
-
   const serviceClient = createServiceRoleClient();
   const { data, error } = await serviceClient
     .from("promos")
@@ -60,7 +54,6 @@ export async function POST(req: NextRequest) {
       descricao:     descricao?.trim().slice(0, 1000) ?? null,
       preco_promo:   Number(preco_promo),
       preco_original: preco_original ? Number(preco_original) : null,
-      desconto_pct,
       link_afiliado: linkAfiliado,
       loja,
       categoria,
