@@ -111,6 +111,47 @@ function extrairH1(html: string): string | null {
   return texto;
 }
 
+// 5. Extração específica para Mercado Livre
+// ML renderiza com JS — o HTML cru tem poucos dados, mas:
+//   - A URL sempre contém o slug do produto
+//   - As imagens mlstatic.com aparecem em scripts/data-src
+function extrairMercadoLivre(url: string, html: string): {
+  titulo?: string; imagem?: string;
+} {
+  const isMl = /mercadolivre\.com\.br|mercadopago\.com\.br/.test(url);
+  if (!isMl) return {};
+
+  // Título via URL: /caixa-de-som-partybox-encore-_JM → "Caixa De Som Partybox Encore"
+  let titulo: string | undefined;
+  try {
+    const path = new URL(url).pathname;
+    // Remove sufixo _JM, _MLB, query params
+    const match = path.match(/\/([a-z0-9][a-z0-9-]{5,}?)(?:-_[A-Z]{2,}|$)/i);
+    if (match?.[1]) {
+      titulo = match[1]
+        .split("-")
+        .filter(w => w.length > 0)
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(" ")
+        .slice(0, 200);
+      // Rejeita se ficou igual ao nome do site
+      if (NOMES_SITE.has(titulo.toLowerCase())) titulo = undefined;
+    }
+  } catch { /* ok */ }
+
+  // Imagem: busca URLs mlstatic.com no HTML (aparecem em scripts e data-src)
+  let imagem: string | undefined;
+  const mlImageMatch = html.match(
+    /https?:\/\/http2\.mlstatic\.com\/D_NQ_NP_[A-Za-z0-9_%-]+\.(?:jpg|webp|jpeg)/i
+  );
+  if (mlImageMatch) {
+    // Pega a versão de alta qualidade removendo sufixos de resize
+    imagem = mlImageMatch[0].replace(/-[OFSWH]\.[a-z]+$/, ".jpg");
+  }
+
+  return { titulo, imagem };
+}
+
 export async function GET(req: NextRequest) {
   const url = req.nextUrl.searchParams.get("url");
   if (!url) return NextResponse.json({ error: "URL obrigatória" }, { status: 400 });
