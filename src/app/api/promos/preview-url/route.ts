@@ -115,9 +115,9 @@ function extrairH1(html: string): string | null {
 // ML renderiza com JS — o HTML cru tem poucos dados, mas:
 //   - A URL sempre contém o slug do produto
 //   - As imagens mlstatic.com aparecem em scripts/data-src
-function extrairMercadoLivre(url: string, html: string): {
+async function extrairMercadoLivre(url: string, html: string): Promise<{
   titulo?: string; imagem?: string;
-} {
+}> {
   const isMl = /mercadolivre\.com\.br|mercadopago\.com\.br/.test(url);
   if (!isMl) return {};
 
@@ -201,7 +201,7 @@ export async function GET(req: NextRequest) {
     const html = await res.text();
 
     // Tenta cada estratégia em ordem de confiabilidade
-    const ml        = extrairMercadoLivre(url, html);
+    const ml        = await extrairMercadoLivre(url, html);
     const jsonLd    = extrairJsonLd(html);
     const itemprop  = extrairItemprop(html);
     const ogTitulo  = extrairMeta(html, "title");
