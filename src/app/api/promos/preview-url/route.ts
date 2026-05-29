@@ -139,19 +139,36 @@ function extrairMercadoLivre(url: string, html: string): {
     }
   } catch { /* ok */ }
 
-  // Imagem: busca qualquer URL mlstatic.com no HTML (scripts, data-src, og:image, JSON)
+  // Imagem: tenta primeiro via API pública do ML (mais confiável para /p/MLB...)
   let imagem: string | undefined;
-  // Padrões em ordem de preferência: D_NQ_NP (listing) → qualquer mlstatic
-  const mlPatterns = [
-    /https?:\/\/http2\.mlstatic\.com\/D_NQ_NP_[A-Za-z0-9_%-]+\.(?:jpg|webp|jpeg|png)/i,
-    /https?:\/\/[a-z0-9-]+\.mlstatic\.com\/[A-Za-z0-9_%/.-]{10,}\.(?:jpg|webp|jpeg|png)/i,
-  ];
-  for (const pattern of mlPatterns) {
-    const m = html.match(pattern);
-    if (m) {
-      // Remove sufixos de resize (-O, -F, -S, -W, -H) mantendo alta qualidade
-      imagem = m[0].replace(/-[A-Z]\.(jpg|webp|jpeg|png)$/i, ".$1");
-      break;
+  try {
+    // Extrai ID do produto: MLB53540006 (aparece no path ou como MLA/MLM etc)
+    const mlId = url.match(/\/(ML[A-Z]\d{6,})/i)?.[1];
+    if (mlId) {
+      const apiRes = await fetch(`https://api.mercadolibre.com/products/${mlId}`, {
+        headers: { "Accept": "application/json" },
+        signal: AbortSignal.timeout(5000),
+      });
+      if (apiRes.ok) {
+        const data = await apiRes.json() as { pictures?: { url?: string }[] };
+        const pic = data.pictures?.[0]?.url;
+        if (pic) imagem = pic;
+      }
+    }
+  } catch { /* ok, cai no fallback */ }
+
+  // Fallback: regex no HTML
+  if (!imagem) {
+    const mlPatterns = [
+      /https?:\/\/http2\.mlstatic\.com\/D_NQ_NP_[A-Za-z0-9_%-]+\.(?:jpg|webp|jpeg|png)/i,
+      /https?:\/\/[a-z0-9-]+\.mlstatic\.com\/[A-Za-z0-9_%/.-]{10,}\.(?:jpg|webp|jpeg|png)/i,
+    ];
+    for (const pattern of mlPatterns) {
+      const m = html.match(pattern);
+      if (m) {
+        imagem = m[0].replace(/-[A-Z]\.(jpg|webp|jpeg|png)$/i, ".$1");
+        break;
+      }
     }
   }
 
