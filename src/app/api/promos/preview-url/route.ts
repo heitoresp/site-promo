@@ -166,20 +166,7 @@ async function extrairMercadoLivre(url: string, html: string): Promise<{
     } catch (e) { console.log("[ML-DEBUG] search erro:", e); }
   }
 
-  // 3. Regex no HTML — último recurso
-  if (!imagem) {
-    const mlPatterns = [
-      /https?:\/\/http2\.mlstatic\.com\/D_NQ_NP_[A-Za-z0-9_%-]+\.(?:jpg|webp|jpeg|png)/i,
-      /https?:\/\/[a-z0-9-]+\.mlstatic\.com\/[A-Za-z0-9_%/.-]{10,}\.(?:jpg|webp|jpeg|png)/i,
-    ];
-    for (const pattern of mlPatterns) {
-      const m = html.match(pattern);
-      if (m) { imagem = m[0].replace(/-[A-Z]\.(jpg|webp|jpeg|png)$/i, ".$1"); break; }
-    }
-    console.log("[ML-DEBUG] regex:", imagem ?? "nenhuma");
-  }
-
-  console.log("[ML-DEBUG] imagem final:", imagem ?? "VAZIA");
+  console.log("[ML-DEBUG] imagem final (API):", imagem ?? "VAZIA — vai usar og:image");
 
   return { titulo, imagem };
 }
@@ -222,8 +209,12 @@ export async function GET(req: NextRequest) {
     const tituloRaw = ml.titulo ?? jsonLd.titulo ?? itemprop.titulo ?? ogTitulo ?? h1;
     const titulo    = tituloRaw ? limparTitulo(tituloRaw) : null;
 
-    // ML tem prioridade para imagem também
-    const imagemRaw = ml.imagem ?? jsonLd.imagem ?? itemprop.imagem ?? ogImagem ?? null;
+    // Para ML: API pública → og:image (mais confiável que regex no HTML JS-rendered)
+    // Para outros: JSON-LD → itemprop → og:image
+    const isMl = hostname.includes("mercadolivre") || hostname.includes("mercadolibre");
+    const imagemRaw = isMl
+      ? (ml.imagem ?? ogImagem ?? jsonLd.imagem ?? null)
+      : (jsonLd.imagem ?? itemprop.imagem ?? ogImagem ?? null);
     const imagem    = validarImagem(imagemRaw ?? null, hostname);
 
     const descricao = (jsonLd.descricao ?? itemprop.descricao ?? ogDesc ?? null)?.slice(0, 500) ?? null;
