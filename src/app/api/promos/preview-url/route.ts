@@ -139,37 +139,53 @@ async function extrairMercadoLivre(url: string, html: string): Promise<{
     }
   } catch { /* ok */ }
 
-  // Imagem — 3 estratégias em cascata
+  // Imagem via ML API autenticada (client_credentials — app token gratuito)
   let imagem: string | undefined;
   const mlId = url.match(/\/(ML[A-Z]\d{6,})/i)?.[1];
-  console.log("[ML-DEBUG] mlId:", mlId);
 
-  // 1. Busca pública ML — endpoint correto: /sites/MLB/search
-  if (!imagem && titulo) {
+  if (mlId) {
     try {
-      // Usa as primeiras 4 palavras para evitar query muito específica
-      const query = titulo.split(" ").slice(0, 4).join(" ");
-      const searchUrl = `https://api.mercadolibre.com/sites/MLB/search?q=${encodeURIComponent(query)}&limit=1`;
-      console.log("[ML-DEBUG] query:", query);
-      const r = await fetch(searchUrl, {
-        headers: { "Accept": "application/json" },
-        signal: AbortSignal.timeout(6000),
-      });
-      console.log("[ML-DEBUG] search status:", r.status);
-      if (r.ok) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const d = await r.json() as any;
-        const thumb: string | undefined = d?.results?.[0]?.thumbnail;
-        console.log("[ML-DEBUG] thumb:", thumb ?? "nenhum");
-        if (thumb) {
-          // -I (48px) → -O (600px)
-          imagem = thumb.replace(/-[A-Z]\.(jpg|webp|jpeg|png)$/i, "-O.$1");
+      // 1. Obter app token via client_credentials
+      const clientId     = process.env.ML_CLIENT_ID;
+      const clientSecret = process.env.ML_CLIENT_SECRET;
+      let token: string | null = null;
+
+      console.log("[ML] clientId set:", !!clientId, "| clientSecret set:", !!clientSecret);
+      if (clientId && clientSecret) {
+        const tokenRes = await fetch("https://api.mercadolibre.com/oauth/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json" },
+          body: new URLSearchParams({ grant_type: "client_credentials", client_id: clientId, client_secret: clientSecret }),
+          signal: AbortSignal.timeout(5000),
+        });
+        console.log("[ML] token status:", tokenRes.status);
+        if (tokenRes.ok) {
+          const td = await tokenRes.json() as { access_token?: string };
+          token = td.access_token ?? null;
+          console.log("[ML] token obtido:", !!token);
+        } else {
+          const err = await tokenRes.text();
+          console.log("[ML] token erro:", err.slice(0, 200));
         }
       }
-    } catch (e) { console.log("[ML-DEBUG] search erro:", String(e)); }
-  }
 
-  console.log("[ML-DEBUG] imagem final (API):", imagem ?? "VAZIA — vai usar og:image");
+      // 2. Buscar produto com token
+      if (token) {
+        const r = await fetch(`https://api.mercadolibre.com/products/${mlId}`, {
+          headers: { "Authorization": `Bearer ${token}`, "Accept": "application/json" },
+          signal: AbortSignal.timeout(5000),
+        });
+        console.log("[ML] products status:", r.status);
+        if (r.ok) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const d = await r.json() as any;
+          const pic = d?.pictures?.[0]?.secure_url ?? d?.pictures?.[0]?.url;
+          console.log("[ML] pic:", pic ?? "nenhuma");
+          if (pic) imagem = pic;
+        }
+      }
+    } catch (e) { console.log("[ML] erro geral:", String(e)); }
+  }
 
   return { titulo, imagem };
 }
@@ -213,7 +229,6 @@ export async function GET(req: NextRequest) {
     const titulo    = tituloRaw ? limparTitulo(tituloRaw) : null;
 
     const isMl = hostname.includes("mercadolivre") || hostname.includes("mercadolibre");
-    if (isMl) console.log("[ML-DEBUG] ogImagem:", ogImagem ?? "null", "| ml.imagem:", ml.imagem ?? "null");
 
     // Para ML: API pública → og:image (mais confiável que regex no HTML JS-rendered)
     // Para outros: JSON-LD → itemprop → og:image
