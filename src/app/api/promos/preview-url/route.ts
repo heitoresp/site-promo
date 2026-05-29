@@ -144,29 +144,12 @@ async function extrairMercadoLivre(url: string, html: string): Promise<{
   const mlId = url.match(/\/(ML[A-Z]\d{6,})/i)?.[1];
   console.log("[ML-DEBUG] mlId:", mlId);
 
-  // 1. API /products/:id  (catalog pages /p/MLB...)
-  if (!imagem && mlId) {
+  // 1. Busca pública ML por título — retorna thumbnail sem autenticação
+  if (!imagem && titulo) {
     try {
-      const r = await fetch(`https://api.mercadolibre.com/products/${mlId}`, {
-        headers: { "Accept": "application/json" },
-        signal: AbortSignal.timeout(6000),
-      });
-      console.log("[ML-DEBUG] /products status:", r.status);
-      if (r.ok) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const d = await r.json() as any;
-        const pic = d?.pictures?.[0]?.secure_url ?? d?.pictures?.[0]?.url;
-        console.log("[ML-DEBUG] /products pic:", pic ?? "nenhuma");
-        if (pic) imagem = pic;
-      }
-    } catch (e) { console.log("[ML-DEBUG] /products erro:", e); }
-  }
-
-  // 2. Busca por texto — traz thumbnail do primeiro resultado
-  if (!imagem && mlId) {
-    try {
+      const query = titulo.slice(0, 80); // ML aceita queries longas mas 80 chars basta
       const r = await fetch(
-        `https://api.mercadolibre.com/search?site_id=MLB&q=${encodeURIComponent(mlId)}&limit=1`,
+        `https://api.mercadolibre.com/search?site_id=MLB&q=${encodeURIComponent(query)}&limit=1`,
         { headers: { "Accept": "application/json" }, signal: AbortSignal.timeout(6000) }
       );
       console.log("[ML-DEBUG] search status:", r.status);
@@ -175,7 +158,10 @@ async function extrairMercadoLivre(url: string, html: string): Promise<{
         const d = await r.json() as any;
         const thumb: string | undefined = d?.results?.[0]?.thumbnail;
         console.log("[ML-DEBUG] search thumb:", thumb ?? "nenhum");
-        if (thumb) imagem = thumb.replace(/-[A-Z]\.(jpg|webp|jpeg|png)$/i, "-O.$1");
+        if (thumb) {
+          // Troca sufixo de resize: -I (thumb) → -O (imagem grande)
+          imagem = thumb.replace(/-[A-Z]\.(jpg|webp|jpeg|png)$/i, "-O.$1");
+        }
       }
     } catch (e) { console.log("[ML-DEBUG] search erro:", e); }
   }
