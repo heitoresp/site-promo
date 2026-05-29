@@ -139,20 +139,31 @@ async function extrairMercadoLivre(url: string, html: string): Promise<{
     }
   } catch { /* ok */ }
 
-  // Imagem: tenta primeiro via API pública do ML (mais confiável para /p/MLB...)
+  // Imagem: tenta via API pública do ML (products → items, sem auth necessária)
   let imagem: string | undefined;
   try {
-    // Extrai ID do produto: MLB53540006 (aparece no path ou como MLA/MLM etc)
     const mlId = url.match(/\/(ML[A-Z]\d{6,})/i)?.[1];
     if (mlId) {
-      const apiRes = await fetch(`https://api.mercadolibre.com/products/${mlId}`, {
-        headers: { "Accept": "application/json" },
-        signal: AbortSignal.timeout(5000),
-      });
-      if (apiRes.ok) {
-        const data = await apiRes.json() as { pictures?: { url?: string }[] };
-        const pic = data.pictures?.[0]?.url;
-        if (pic) imagem = pic;
+      // Tenta endpoint /products primeiro (páginas /p/), depois /items (listagens)
+      const endpoints = [
+        `https://api.mercadolibre.com/products/${mlId}`,
+        `https://api.mercadolibre.com/items/${mlId}`,
+      ];
+      for (const endpoint of endpoints) {
+        const apiRes = await fetch(endpoint, {
+          headers: { "Accept": "application/json", "User-Agent": "Mozilla/5.0" },
+          signal: AbortSignal.timeout(5000),
+        });
+        if (!apiRes.ok) continue;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const data = await apiRes.json() as any;
+        const pics: unknown[] = Array.isArray(data?.pictures) ? data.pictures : [];
+        if (pics.length > 0) {
+          const first = pics[0] as Record<string, string>;
+          // ML retorna secure_url (HTTPS) ou url
+          const pic = first?.secure_url ?? first?.url;
+          if (pic) { imagem = pic; break; }
+        }
       }
     }
   } catch { /* ok, cai no fallback */ }
