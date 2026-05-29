@@ -178,6 +178,7 @@ export async function GET(req: NextRequest) {
     const html = await res.text();
 
     // Tenta cada estratégia em ordem de confiabilidade
+    const ml        = extrairMercadoLivre(url, html);
     const jsonLd    = extrairJsonLd(html);
     const itemprop  = extrairItemprop(html);
     const ogTitulo  = extrairMeta(html, "title");
@@ -185,11 +186,12 @@ export async function GET(req: NextRequest) {
     const ogDesc    = extrairMeta(html, "description");
     const h1        = extrairH1(html);
 
-    const tituloRaw = jsonLd.titulo ?? itemprop.titulo ?? ogTitulo ?? h1;
+    // ML tem prioridade para título (OG/itemprop retornam "Mercado Libre" sem JS)
+    const tituloRaw = ml.titulo ?? jsonLd.titulo ?? itemprop.titulo ?? ogTitulo ?? h1;
     const titulo    = tituloRaw ? limparTitulo(tituloRaw) : null;
 
-    // Valida e filtra imagens genéricas
-    const imagemRaw = jsonLd.imagem ?? itemprop.imagem ?? ogImagem ?? null;
+    // ML tem prioridade para imagem também
+    const imagemRaw = ml.imagem ?? jsonLd.imagem ?? itemprop.imagem ?? ogImagem ?? null;
     const imagem    = validarImagem(imagemRaw ?? null, hostname);
 
     const descricao = (jsonLd.descricao ?? itemprop.descricao ?? ogDesc ?? null)?.slice(0, 500) ?? null;
