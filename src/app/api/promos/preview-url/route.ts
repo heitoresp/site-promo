@@ -141,15 +141,18 @@ async function extrairMercadoLivre(url: string, html: string): Promise<{
 
   // Imagem — 3 estratégias em cascata
   let imagem: string | undefined;
+  const mlId = url.match(/\/(ML[A-Z]\d{6,})/i)?.[1];
+  console.log("[ML-DEBUG] mlId:", mlId);
 
   // 1. __NEXT_DATA__ — Next.js do ML embute dados no HTML mesmo sem JS
   if (!imagem) {
     try {
       const nd = html.match(/<script[^>]+id=["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/i);
+      console.log("[ML-DEBUG] __NEXT_DATA__ found:", !!nd);
       if (nd?.[1]) {
         const str = nd[1];
-        // Busca qualquer URL mlstatic dentro do bloco JSON
         const m = str.match(/https?:\\?\/\\?\/[a-z0-9-]+\.mlstatic\.com\\?\/[^"\\]{10,}\.(?:jpg|webp|jpeg|png)/i);
+        console.log("[ML-DEBUG] NEXT_DATA imagem:", m?.[0] ?? "nenhuma");
         if (m) imagem = m[0].replace(/\\\//, "/").replace(/\\/g, "");
       }
     } catch { /* ok */ }
@@ -158,25 +161,25 @@ async function extrairMercadoLivre(url: string, html: string): Promise<{
   // 2. Search API pública do ML (sem autenticação)
   if (!imagem) {
     try {
-      const mlId = url.match(/\/(ML[A-Z]\d{6,})/i)?.[1];
       if (mlId) {
-        // catalog_product_id traz itens associados ao produto, cada um com thumbnail
         const searchUrl = `https://api.mercadolibre.com/search?site_id=MLB&catalog_product_id=${mlId}&limit=1`;
+        console.log("[ML-DEBUG] chamando search API:", searchUrl);
         const apiRes = await fetch(searchUrl, {
           headers: { "Accept": "application/json" },
           signal: AbortSignal.timeout(6000),
         });
+        console.log("[ML-DEBUG] search API status:", apiRes.status);
         if (apiRes.ok) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const data = await apiRes.json() as any;
           const thumb: string | undefined = data?.results?.[0]?.thumbnail;
-          if (thumb) {
-            // Troca tamanho: -I.jpg → -O.jpg (maior qualidade)
-            imagem = thumb.replace(/-[A-Z]\.(jpg|webp|jpeg|png)$/i, "-O.$1");
-          }
+          console.log("[ML-DEBUG] thumbnail:", thumb ?? "nenhum");
+          if (thumb) imagem = thumb.replace(/-[A-Z]\.(jpg|webp|jpeg|png)$/i, "-O.$1");
         }
       }
-    } catch { /* ok, cai no regex */ }
+    } catch (e) {
+      console.log("[ML-DEBUG] search API erro:", e);
+    }
   }
 
   // 3. Regex no HTML — último recurso
@@ -192,7 +195,10 @@ async function extrairMercadoLivre(url: string, html: string): Promise<{
         break;
       }
     }
+    console.log("[ML-DEBUG] regex imagem:", imagem ?? "nenhuma");
   }
+
+  console.log("[ML-DEBUG] imagem final:", imagem ?? "VAZIA");
 
   return { titulo, imagem };
 }
