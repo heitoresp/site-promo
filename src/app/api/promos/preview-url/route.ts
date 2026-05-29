@@ -139,14 +139,20 @@ function extrairMercadoLivre(url: string, html: string): {
     }
   } catch { /* ok */ }
 
-  // Imagem: busca URLs mlstatic.com no HTML (aparecem em scripts e data-src)
+  // Imagem: busca qualquer URL mlstatic.com no HTML (scripts, data-src, og:image, JSON)
   let imagem: string | undefined;
-  const mlImageMatch = html.match(
-    /https?:\/\/http2\.mlstatic\.com\/D_NQ_NP_[A-Za-z0-9_%-]+\.(?:jpg|webp|jpeg)/i
-  );
-  if (mlImageMatch) {
-    // Pega a versão de alta qualidade removendo sufixos de resize
-    imagem = mlImageMatch[0].replace(/-[OFSWH]\.[a-z]+$/, ".jpg");
+  // Padrões em ordem de preferência: D_NQ_NP (listing) → qualquer mlstatic
+  const mlPatterns = [
+    /https?:\/\/http2\.mlstatic\.com\/D_NQ_NP_[A-Za-z0-9_%-]+\.(?:jpg|webp|jpeg|png)/i,
+    /https?:\/\/[a-z0-9-]+\.mlstatic\.com\/[A-Za-z0-9_%/.-]{10,}\.(?:jpg|webp|jpeg|png)/i,
+  ];
+  for (const pattern of mlPatterns) {
+    const m = html.match(pattern);
+    if (m) {
+      // Remove sufixos de resize (-O, -F, -S, -W, -H) mantendo alta qualidade
+      imagem = m[0].replace(/-[A-Z]\.(jpg|webp|jpeg|png)$/i, ".$1");
+      break;
+    }
   }
 
   return { titulo, imagem };
