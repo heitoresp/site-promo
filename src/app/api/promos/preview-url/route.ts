@@ -144,42 +144,40 @@ async function extrairMercadoLivre(url: string, html: string): Promise<{
   const mlId = url.match(/\/(ML[A-Z]\d{6,})/i)?.[1];
   console.log("[ML-DEBUG] mlId:", mlId);
 
-  // 1. __NEXT_DATA__ — Next.js do ML embute dados no HTML mesmo sem JS
-  if (!imagem) {
+  // 1. API /products/:id  (catalog pages /p/MLB...)
+  if (!imagem && mlId) {
     try {
-      const nd = html.match(/<script[^>]+id=["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/i);
-      console.log("[ML-DEBUG] __NEXT_DATA__ found:", !!nd);
-      if (nd?.[1]) {
-        const str = nd[1];
-        const m = str.match(/https?:\\?\/\\?\/[a-z0-9-]+\.mlstatic\.com\\?\/[^"\\]{10,}\.(?:jpg|webp|jpeg|png)/i);
-        console.log("[ML-DEBUG] NEXT_DATA imagem:", m?.[0] ?? "nenhuma");
-        if (m) imagem = m[0].replace(/\\\//, "/").replace(/\\/g, "");
+      const r = await fetch(`https://api.mercadolibre.com/products/${mlId}`, {
+        headers: { "Accept": "application/json" },
+        signal: AbortSignal.timeout(6000),
+      });
+      console.log("[ML-DEBUG] /products status:", r.status);
+      if (r.ok) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const d = await r.json() as any;
+        const pic = d?.pictures?.[0]?.secure_url ?? d?.pictures?.[0]?.url;
+        console.log("[ML-DEBUG] /products pic:", pic ?? "nenhuma");
+        if (pic) imagem = pic;
       }
-    } catch { /* ok */ }
+    } catch (e) { console.log("[ML-DEBUG] /products erro:", e); }
   }
 
-  // 2. Search API pública do ML (sem autenticação)
-  if (!imagem) {
+  // 2. Busca por texto — traz thumbnail do primeiro resultado
+  if (!imagem && mlId) {
     try {
-      if (mlId) {
-        const searchUrl = `https://api.mercadolibre.com/search?site_id=MLB&catalog_product_id=${mlId}&limit=1`;
-        console.log("[ML-DEBUG] chamando search API:", searchUrl);
-        const apiRes = await fetch(searchUrl, {
-          headers: { "Accept": "application/json" },
-          signal: AbortSignal.timeout(6000),
-        });
-        console.log("[ML-DEBUG] search API status:", apiRes.status);
-        if (apiRes.ok) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const data = await apiRes.json() as any;
-          const thumb: string | undefined = data?.results?.[0]?.thumbnail;
-          console.log("[ML-DEBUG] thumbnail:", thumb ?? "nenhum");
-          if (thumb) imagem = thumb.replace(/-[A-Z]\.(jpg|webp|jpeg|png)$/i, "-O.$1");
-        }
+      const r = await fetch(
+        `https://api.mercadolibre.com/search?site_id=MLB&q=${encodeURIComponent(mlId)}&limit=1`,
+        { headers: { "Accept": "application/json" }, signal: AbortSignal.timeout(6000) }
+      );
+      console.log("[ML-DEBUG] search status:", r.status);
+      if (r.ok) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const d = await r.json() as any;
+        const thumb: string | undefined = d?.results?.[0]?.thumbnail;
+        console.log("[ML-DEBUG] search thumb:", thumb ?? "nenhum");
+        if (thumb) imagem = thumb.replace(/-[A-Z]\.(jpg|webp|jpeg|png)$/i, "-O.$1");
       }
-    } catch (e) {
-      console.log("[ML-DEBUG] search API erro:", e);
-    }
+    } catch (e) { console.log("[ML-DEBUG] search erro:", e); }
   }
 
   // 3. Regex no HTML — último recurso
@@ -190,12 +188,9 @@ async function extrairMercadoLivre(url: string, html: string): Promise<{
     ];
     for (const pattern of mlPatterns) {
       const m = html.match(pattern);
-      if (m) {
-        imagem = m[0].replace(/-[A-Z]\.(jpg|webp|jpeg|png)$/i, ".$1");
-        break;
-      }
+      if (m) { imagem = m[0].replace(/-[A-Z]\.(jpg|webp|jpeg|png)$/i, ".$1"); break; }
     }
-    console.log("[ML-DEBUG] regex imagem:", imagem ?? "nenhuma");
+    console.log("[ML-DEBUG] regex:", imagem ?? "nenhuma");
   }
 
   console.log("[ML-DEBUG] imagem final:", imagem ?? "VAZIA");
