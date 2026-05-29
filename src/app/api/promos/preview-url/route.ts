@@ -212,9 +212,11 @@ export async function GET(req: NextRequest) {
     const tituloRaw = ml.titulo ?? jsonLd.titulo ?? itemprop.titulo ?? ogTitulo ?? h1;
     const titulo    = tituloRaw ? limparTitulo(tituloRaw) : null;
 
+    const isMl = hostname.includes("mercadolivre") || hostname.includes("mercadolibre");
+    if (isMl) console.log("[ML-DEBUG] ogImagem:", ogImagem ?? "null", "| ml.imagem:", ml.imagem ?? "null");
+
     // Para ML: API pública → og:image (mais confiável que regex no HTML JS-rendered)
     // Para outros: JSON-LD → itemprop → og:image
-    const isMl = hostname.includes("mercadolivre") || hostname.includes("mercadolibre");
     const imagemRaw = isMl
       ? (ml.imagem ?? ogImagem ?? jsonLd.imagem ?? null)
       : (jsonLd.imagem ?? itemprop.imagem ?? ogImagem ?? null);
