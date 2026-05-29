@@ -144,26 +144,29 @@ async function extrairMercadoLivre(url: string, html: string): Promise<{
   const mlId = url.match(/\/(ML[A-Z]\d{6,})/i)?.[1];
   console.log("[ML-DEBUG] mlId:", mlId);
 
-  // 1. Busca pública ML por título — retorna thumbnail sem autenticação
+  // 1. Busca pública ML — endpoint correto: /sites/MLB/search
   if (!imagem && titulo) {
     try {
-      const query = titulo.slice(0, 80); // ML aceita queries longas mas 80 chars basta
-      const r = await fetch(
-        `https://api.mercadolibre.com/search?site_id=MLB&q=${encodeURIComponent(query)}&limit=1`,
-        { headers: { "Accept": "application/json" }, signal: AbortSignal.timeout(6000) }
-      );
+      // Usa as primeiras 4 palavras para evitar query muito específica
+      const query = titulo.split(" ").slice(0, 4).join(" ");
+      const searchUrl = `https://api.mercadolibre.com/sites/MLB/search?q=${encodeURIComponent(query)}&limit=1`;
+      console.log("[ML-DEBUG] query:", query);
+      const r = await fetch(searchUrl, {
+        headers: { "Accept": "application/json" },
+        signal: AbortSignal.timeout(6000),
+      });
       console.log("[ML-DEBUG] search status:", r.status);
       if (r.ok) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const d = await r.json() as any;
         const thumb: string | undefined = d?.results?.[0]?.thumbnail;
-        console.log("[ML-DEBUG] search thumb:", thumb ?? "nenhum");
+        console.log("[ML-DEBUG] thumb:", thumb ?? "nenhum");
         if (thumb) {
-          // Troca sufixo de resize: -I (thumb) → -O (imagem grande)
+          // -I (48px) → -O (600px)
           imagem = thumb.replace(/-[A-Z]\.(jpg|webp|jpeg|png)$/i, "-O.$1");
         }
       }
-    } catch (e) { console.log("[ML-DEBUG] search erro:", e); }
+    } catch (e) { console.log("[ML-DEBUG] search erro:", String(e)); }
   }
 
   console.log("[ML-DEBUG] imagem final (API):", imagem ?? "VAZIA — vai usar og:image");
