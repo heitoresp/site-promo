@@ -139,36 +139,47 @@ async function extrairMercadoLivre(url: string, html: string): Promise<{
     }
   } catch { /* ok */ }
 
-  // Imagem: tenta via API pública do ML (products → items, sem auth necessária)
+  // Imagem — 3 estratégias em cascata
   let imagem: string | undefined;
-  try {
-    const mlId = url.match(/\/(ML[A-Z]\d{6,})/i)?.[1];
-    if (mlId) {
-      // Tenta endpoint /products primeiro (páginas /p/), depois /items (listagens)
-      const endpoints = [
-        `https://api.mercadolibre.com/products/${mlId}`,
-        `https://api.mercadolibre.com/items/${mlId}`,
-      ];
-      for (const endpoint of endpoints) {
-        const apiRes = await fetch(endpoint, {
-          headers: { "Accept": "application/json", "User-Agent": "Mozilla/5.0" },
-          signal: AbortSignal.timeout(5000),
+
+  // 1. __NEXT_DATA__ — Next.js do ML embute dados no HTML mesmo sem JS
+  if (!imagem) {
+    try {
+      const nd = html.match(/<script[^>]+id=["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/i);
+      if (nd?.[1]) {
+        const str = nd[1];
+        // Busca qualquer URL mlstatic dentro do bloco JSON
+        const m = str.match(/https?:\\?\/\\?\/[a-z0-9-]+\.mlstatic\.com\\?\/[^"\\]{10,}\.(?:jpg|webp|jpeg|png)/i);
+        if (m) imagem = m[0].replace(/\\\//, "/").replace(/\\/g, "");
+      }
+    } catch { /* ok */ }
+  }
+
+  // 2. Search API pública do ML (sem autenticação)
+  if (!imagem) {
+    try {
+      const mlId = url.match(/\/(ML[A-Z]\d{6,})/i)?.[1];
+      if (mlId) {
+        // catalog_product_id traz itens associados ao produto, cada um com thumbnail
+        const searchUrl = `https://api.mercadolibre.com/search?site_id=MLB&catalog_product_id=${mlId}&limit=1`;
+        const apiRes = await fetch(searchUrl, {
+          headers: { "Accept": "application/json" },
+          signal: AbortSignal.timeout(6000),
         });
-        if (!apiRes.ok) continue;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const data = await apiRes.json() as any;
-        const pics: unknown[] = Array.isArray(data?.pictures) ? data.pictures : [];
-        if (pics.length > 0) {
-          const first = pics[0] as Record<string, string>;
-          // ML retorna secure_url (HTTPS) ou url
-          const pic = first?.secure_url ?? first?.url;
-          if (pic) { imagem = pic; break; }
+        if (apiRes.ok) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const data = await apiRes.json() as any;
+          const thumb: string | undefined = data?.results?.[0]?.thumbnail;
+          if (thumb) {
+            // Troca tamanho: -I.jpg → -O.jpg (maior qualidade)
+            imagem = thumb.replace(/-[A-Z]\.(jpg|webp|jpeg|png)$/i, "-O.$1");
+          }
         }
       }
-    }
-  } catch { /* ok, cai no fallback */ }
+    } catch { /* ok, cai no regex */ }
+  }
 
-  // Fallback: regex no HTML
+  // 3. Regex no HTML — último recurso
   if (!imagem) {
     const mlPatterns = [
       /https?:\/\/http2\.mlstatic\.com\/D_NQ_NP_[A-Za-z0-9_%-]+\.(?:jpg|webp|jpeg|png)/i,
