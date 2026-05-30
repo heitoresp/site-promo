@@ -111,7 +111,46 @@ function extrairH1(html: string): string | null {
   return texto;
 }
 
-// 5. Extração específica para Mercado Livre
+// 5. Extração específica para Amazon
+// Amazon renderiza server-side mas bloqueia og:image.
+// As imagens ficam em: data-old-hires, colorImages JSON, data-a-dynamic-image, ou regex media-amazon.com
+function extrairAmazon(html: string, hostname: string): { imagem?: string } {
+  if (!hostname.includes("amazon")) return {};
+
+  // 1. data-old-hires — atributo de alta resolução no <img> do produto
+  const hires = html.match(/data-old-hires=["']([^"']+m\.media-amazon\.com[^"']+)["']/i);
+  if (hires?.[1]) return { imagem: hires[1] };
+
+  // 2. colorImages JSON embutido em <script> — {"hiRes":"https://m.media-amazon.com/..."}
+  const hiRes = html.match(/"hiRes"\s*:\s*"(https?:\/\/m\.media-amazon\.com\/images\/I\/[A-Za-z0-9%_.+-]+\.jpg)"/i);
+  if (hiRes?.[1]) return { imagem: hiRes[1] };
+
+  // 3. data-a-dynamic-image — JSON com mapa de URLs por tamanho
+  const dynImg = html.match(/data-a-dynamic-image=["'](\{[^"']{10,2000}\})["']/i);
+  if (dynImg?.[1]) {
+    try {
+      const obj = JSON.parse(dynImg[1].replace(/&quot;/g, '"')) as Record<string, unknown>;
+      // Pega a URL com maior tamanho
+      const sorted = Object.keys(obj).sort((a, b) => {
+        const [wa, ha] = (obj[a] as number[]);
+        const [wb, hb] = (obj[b] as number[]);
+        return (wb * hb) - (wa * ha);
+      });
+      if (sorted[0]) return { imagem: sorted[0] };
+    } catch { /* ok */ }
+  }
+
+  // 4. Regex geral — qualquer URL m.media-amazon.com/images/I/ no HTML
+  const generic = html.match(/https?:\/\/m\.media-amazon\.com\/images\/I\/[A-Za-z0-9%_.+-]+\.(?:jpg|jpeg|png|webp)/i);
+  if (generic?.[0] && !generic[0].includes("sprite") && !generic[0].includes("pixel")) {
+    // Força alta resolução: remove sufixo de resize ._SX300_ etc
+    return { imagem: generic[0].replace(/\._[A-Z0-9,_]+_\.(jpg|jpeg|png|webp)$/i, ".$1") };
+  }
+
+  return {};
+}
+
+// 6. Extração específica para Mercado Livre
 // ML renderiza com JS — o HTML cru tem poucos dados, mas:
 //   - A URL sempre contém o slug do produto
 //   - As imagens mlstatic.com aparecem em scripts/data-src
@@ -217,6 +256,7 @@ export async function GET(req: NextRequest) {
 
     // Tenta cada estratégia em ordem de confiabilidade
     const ml        = await extrairMercadoLivre(url, html);
+    const amz       = extrairAmazon(html, hostname);
     const jsonLd    = extrairJsonLd(html);
     const itemprop  = extrairItemprop(html);
     const ogTitulo  = extrairMeta(html, "title");
@@ -224,29 +264,17 @@ export async function GET(req: NextRequest) {
     const ogDesc    = extrairMeta(html, "description");
     const h1        = extrairH1(html);
 
-    const isAmazon = hostname.includes("amazon");
-    if (isAmazon) {
-      console.log("[AMZ] httpStatus:", res.status);
-      console.log("[AMZ] jsonLd.titulo:", jsonLd.titulo ?? "null");
-      console.log("[AMZ] jsonLd.imagem:", jsonLd.imagem ?? "null");
-      console.log("[AMZ] ogTitulo:", ogTitulo ?? "null");
-      console.log("[AMZ] ogImagem:", ogImagem ?? "null");
-      console.log("[AMZ] itemprop.titulo:", itemprop.titulo ?? "null");
-      console.log("[AMZ] itemprop.imagem:", itemprop.imagem ?? "null");
-      console.log("[AMZ] h1:", h1 ?? "null");
-    }
-
     // ML tem prioridade para título (OG/itemprop retornam "Mercado Libre" sem JS)
     const tituloRaw = ml.titulo ?? jsonLd.titulo ?? itemprop.titulo ?? ogTitulo ?? h1;
     const titulo    = tituloRaw ? limparTitulo(tituloRaw) : null;
 
-    const isMl = hostname.includes("mercadolivre") || hostname.includes("mercadolibre");
+    const isMl  = hostname.includes("mercadolivre") || hostname.includes("mercadolibre");
+    const isAmz = hostname.includes("amazon");
 
-    // Para ML: API pública → og:image (mais confiável que regex no HTML JS-rendered)
-    // Para outros: JSON-LD → itemprop → og:image
-    const imagemRaw = isMl
-      ? (ml.imagem ?? ogImagem ?? jsonLd.imagem ?? null)
-      : (jsonLd.imagem ?? itemprop.imagem ?? ogImagem ?? null);
+    // Prioridade de imagem por loja
+    const imagemRaw = isMl  ? (ml.imagem  ?? ogImagem ?? jsonLd.imagem ?? null)
+                    : isAmz ? (amz.imagem ?? jsonLd.imagem ?? ogImagem ?? null)
+                    : (jsonLd.imagem ?? itemprop.imagem ?? ogImagem ?? null);
     const imagem    = validarImagem(imagemRaw ?? null, hostname);
 
     const descricao = (jsonLd.descricao ?? itemprop.descricao ?? ogDesc ?? null)?.slice(0, 500) ?? null;
