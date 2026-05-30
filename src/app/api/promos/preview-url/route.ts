@@ -224,6 +224,18 @@ export async function GET(req: NextRequest) {
     const ogDesc    = extrairMeta(html, "description");
     const h1        = extrairH1(html);
 
+    const isAmazon = hostname.includes("amazon");
+    if (isAmazon) {
+      console.log("[AMZ] httpStatus:", res.status);
+      console.log("[AMZ] jsonLd.titulo:", jsonLd.titulo ?? "null");
+      console.log("[AMZ] jsonLd.imagem:", jsonLd.imagem ?? "null");
+      console.log("[AMZ] ogTitulo:", ogTitulo ?? "null");
+      console.log("[AMZ] ogImagem:", ogImagem ?? "null");
+      console.log("[AMZ] itemprop.titulo:", itemprop.titulo ?? "null");
+      console.log("[AMZ] itemprop.imagem:", itemprop.imagem ?? "null");
+      console.log("[AMZ] h1:", h1 ?? "null");
+    }
+
     // ML tem prioridade para título (OG/itemprop retornam "Mercado Libre" sem JS)
     const tituloRaw = ml.titulo ?? jsonLd.titulo ?? itemprop.titulo ?? ogTitulo ?? h1;
     const titulo    = tituloRaw ? limparTitulo(tituloRaw) : null;
