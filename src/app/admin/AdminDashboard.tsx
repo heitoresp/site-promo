@@ -10,7 +10,7 @@ import { formatarPreco, tempoRelativo } from "@/lib/utils";
 import {
   Plus, LogOut, Flame, Zap, TrendingUp, Bot,
   Trash2, Eye, EyeOff, ExternalLink, X, Check, Flag,
-  Clock, CheckCircle, XCircle, User, Pencil,
+  Clock, CheckCircle, XCircle, User as UserIcon, Pencil,
 } from "lucide-react";
 
 interface Props {
@@ -300,7 +300,7 @@ export function AdminDashboard({ user, promos: promosIniciais, pendentes: penden
                       <span className="font-bold text-brand-400 text-sm">{formatarPreco(promo.preco_promo)}</span>
                       <span>{promo.loja}</span>
                       <span>{promo.categoria}</span>
-                      <span className="flex items-center gap-1"><User size={10} /> Usuário</span>
+                      <span className="flex items-center gap-1"><UserIcon size={10} /> Usuário</span>
                       <span>{tempoRelativo(promo.criado_em)}</span>
                     </div>
                     <div className="flex items-center gap-2 text-xs">

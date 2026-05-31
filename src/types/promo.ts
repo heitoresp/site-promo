@@ -73,3 +73,26 @@ export interface PromoListResponse {
   limite: number;
   total_paginas: number;
 }
+
+// ============================================================
+// Histórico de preços
+// ============================================================
+export interface HistoricoPreco {
+  preco_promo: number;
+  preco_original: number | null;
+  registrado_em: string; // ISO 8601
+}
+
+export interface HistoricoPrecoStats {
+  menor: number;            // menor preço já registrado
+  maior: number;            // maior preço já registrado
+  atual: number;            // preço mais recente
+  menor_em: string;         // quando o menor preço foi registrado (ISO)
+  eh_menor_preco: boolean;  // o preço atual é o menor já visto?
+  economia_vs_maior: number;// % de economia em relação ao maior preço
+}
+
+export interface HistoricoPrecoResponse {
+  historico: HistoricoPreco[];
+  stats: HistoricoPrecoStats | null;
+}
