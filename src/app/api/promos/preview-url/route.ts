@@ -111,7 +111,52 @@ function extrairH1(html: string): string | null {
   return texto;
 }
 
-// 5. Extração específica para Amazon
+// 5. Extração específica para Shopee
+// URL: shopee.com.br/produto-i.SHOPID.ITEMID
+// API pública: /api/v4/item/get?shopid=X&itemid=Y
+async function extrairShopee(url: string): Promise<{ titulo?: string; imagem?: string }> {
+  const isShopee = /shopee\.com\.br/.test(url);
+  if (!isShopee) return {};
+
+  // Extrai shopid e itemid do final da URL
+  const match = url.match(/-i\.(\d+)\.(\d+)/);
+  if (!match) return {};
+  const [, shopid, itemid] = match;
+
+  try {
+    const apiRes = await fetch(
+      `https://shopee.com.br/api/v4/item/get?shopid=${shopid}&itemid=${itemid}`,
+      {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          "Accept": "application/json",
+          "Referer": "https://shopee.com.br/",
+        },
+        signal: AbortSignal.timeout(6000),
+      }
+    );
+    if (!apiRes.ok) return {};
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data = await apiRes.json() as any;
+    const item = data?.data?.item ?? data?.item;
+    if (!item) return {};
+
+    const titulo: string | undefined = typeof item.name === "string" ? item.name.slice(0, 200) : undefined;
+
+    // Imagem: item.image é o hash; URL completa: https://down-br.img.susercontent.com/file/{hash}
+    const imageHash: string | undefined =
+      item.image ??
+      (Array.isArray(item.images) && item.images.length > 0 ? item.images[0] : undefined);
+    const imagem = imageHash
+      ? `https://down-br.img.susercontent.com/file/${imageHash}`
+      : undefined;
+
+    return { titulo, imagem };
+  } catch { return {}; }
+}
+
+// 6. Extração específica para Amazon
 // Amazon renderiza server-side mas bloqueia og:image.
 // As imagens ficam em: data-old-hires, colorImages JSON, data-a-dynamic-image, ou regex media-amazon.com
 function extrairAmazon(html: string, hostname: string): { imagem?: string } {
@@ -248,6 +293,7 @@ export async function GET(req: NextRequest) {
 
     // Tenta cada estratégia em ordem de confiabilidade
     const ml        = await extrairMercadoLivre(url, html);
+    const shopee    = await extrairShopee(url);
     const amz       = extrairAmazon(html, hostname);
     const jsonLd    = extrairJsonLd(html);
     const itemprop  = extrairItemprop(html);
@@ -256,16 +302,18 @@ export async function GET(req: NextRequest) {
     const ogDesc    = extrairMeta(html, "description");
     const h1        = extrairH1(html);
 
-    // ML tem prioridade para título (OG/itemprop retornam "Mercado Libre" sem JS)
-    const tituloRaw = ml.titulo ?? jsonLd.titulo ?? itemprop.titulo ?? ogTitulo ?? h1;
+    const isMl     = hostname.includes("mercadolivre") || hostname.includes("mercadolibre");
+    const isAmz    = hostname.includes("amazon");
+    const isShopee = hostname.includes("shopee");
+
+    // Título: lojas JS-rendered têm prioridade pela API (OG/itemprop não funcionam)
+    const tituloRaw = ml.titulo ?? shopee.titulo ?? jsonLd.titulo ?? itemprop.titulo ?? ogTitulo ?? h1;
     const titulo    = tituloRaw ? limparTitulo(tituloRaw) : null;
 
-    const isMl  = hostname.includes("mercadolivre") || hostname.includes("mercadolibre");
-    const isAmz = hostname.includes("amazon");
-
     // Prioridade de imagem por loja
-    const imagemRaw = isMl  ? (ml.imagem  ?? ogImagem ?? jsonLd.imagem ?? null)
-                    : isAmz ? (amz.imagem ?? jsonLd.imagem ?? ogImagem ?? null)
+    const imagemRaw = isMl     ? (ml.imagem     ?? ogImagem ?? jsonLd.imagem ?? null)
+                    : isAmz    ? (amz.imagem    ?? jsonLd.imagem ?? ogImagem ?? null)
+                    : isShopee ? (shopee.imagem ?? ogImagem ?? null)
                     : (jsonLd.imagem ?? itemprop.imagem ?? ogImagem ?? null);
     const imagem    = validarImagem(imagemRaw ?? null, hostname);
 
