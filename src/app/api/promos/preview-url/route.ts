@@ -124,36 +124,43 @@ async function extrairShopee(url: string): Promise<{ titulo?: string; imagem?: s
   const [, shopid, itemid] = match;
 
   try {
-    const apiRes = await fetch(
-      `https://shopee.com.br/api/v4/item/get?shopid=${shopid}&itemid=${itemid}`,
-      {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-          "Accept": "application/json",
-          "Referer": "https://shopee.com.br/",
-        },
-        signal: AbortSignal.timeout(6000),
-      }
-    );
-    if (!apiRes.ok) return {};
+    // Tenta v4 e v2
+    for (const version of ["v4", "v2"]) {
+      const apiRes = await fetch(
+        `https://shopee.com.br/api/${version}/item/get?shopid=${shopid}&itemid=${itemid}`,
+        {
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            "Accept": "application/json",
+            "Referer": `https://shopee.com.br/i.${shopid}.${itemid}`,
+            "x-api-source": "pc",
+            "x-sz-sdk-version": "3.0.0",
+          },
+          signal: AbortSignal.timeout(6000),
+        }
+      );
+      console.log(`[SHOPEE] ${version} status:`, apiRes.status);
+      if (!apiRes.ok) continue;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data = await apiRes.json() as any;
-    const item = data?.data?.item ?? data?.item;
-    if (!item) return {};
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = await apiRes.json() as any;
+      console.log("[SHOPEE] data keys:", Object.keys(data ?? {}).join(", "));
+      const item = data?.data?.item ?? data?.item ?? data?.data;
+      console.log("[SHOPEE] item keys:", Object.keys(item ?? {}).slice(0, 10).join(", "));
+      if (!item) continue;
 
-    const titulo: string | undefined = typeof item.name === "string" ? item.name.slice(0, 200) : undefined;
+      const titulo: string | undefined = typeof item.name === "string" ? item.name.slice(0, 200) : undefined;
+      console.log("[SHOPEE] titulo:", titulo ?? "null");
 
-    // Imagem: item.image é o hash; URL completa: https://down-br.img.susercontent.com/file/{hash}
-    const imageHash: string | undefined =
-      item.image ??
-      (Array.isArray(item.images) && item.images.length > 0 ? item.images[0] : undefined);
-    const imagem = imageHash
-      ? `https://down-br.img.susercontent.com/file/${imageHash}`
-      : undefined;
+      const imageHash: string | undefined =
+        item.image ?? (Array.isArray(item.images) && item.images.length > 0 ? item.images[0] : undefined);
+      console.log("[SHOPEE] imageHash:", imageHash ?? "null");
 
-    return { titulo, imagem };
-  } catch { return {}; }
+      const imagem = imageHash ? `https://down-br.img.susercontent.com/file/${imageHash}` : undefined;
+      return { titulo, imagem };
+    }
+    return {};
+  } catch (e) { console.log("[SHOPEE] erro:", String(e)); return {}; }
 }
 
 // 6. Extração específica para Amazon
