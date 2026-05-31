@@ -253,6 +253,90 @@ async function extrairMercadoLivre(url: string, html: string): Promise<{
   return { titulo, imagem };
 }
 
+// ============================================================
+// EXTRAÇÃO DE PREÇO (valor de referência automático)
+//
+// Lê o preço atual e, quando a loja expõe, o preço "de" (riscado)
+// do schema.org (JSON-LD) e das meta tags de produto. Assim a promo
+// já nasce com desconto% e temperatura calculados, sem digitação.
+// ============================================================
+
+// Parse robusto: lida com "1.299,90" (BR), "1,299.90" (US), "49.90" e números.
+function parsePreco(v: unknown): number | null {
+  if (v == null) return null;
+  if (typeof v === "number") return Number.isFinite(v) && v > 0 ? v : null;
+
+  let s = String(v).trim().replace(/[^\d.,]/g, "");
+  if (!s) return null;
+
+  const lastComma = s.lastIndexOf(",");
+  const lastDot   = s.lastIndexOf(".");
+
+  if (lastComma > -1 && lastDot > -1) {
+    // Tem os dois: o que vier por último é o separador decimal
+    s = lastComma > lastDot
+      ? s.replace(/\./g, "").replace(",", ".")   // BR: 1.299,90
+      : s.replace(/,/g, "");                       // US: 1,299.90
+  } else if (lastComma > -1) {
+    // Só vírgula: 2 dígitos depois = decimal (49,90); senão = milhar (1,299)
+    const casas = s.length - lastComma - 1;
+    s = casas === 2 ? s.replace(",", ".") : s.replace(/,/g, "");
+  }
+  // Só ponto (ou nada) já está no formato certo
+
+  const n = parseFloat(s);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+// 1. Preços via JSON-LD (offers / AggregateOffer) — fonte mais confiável
+function extrairPrecosJsonLd(html: string): { preco: number | null; referencia: number | null } {
+  const scripts = html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi);
+  for (const match of scripts) {
+    let data: unknown;
+    try { data = JSON.parse(match[1].trim()); } catch { continue; }
+
+    // Achata @graph e arrays de itens
+    const fila: unknown[] = Array.isArray(data) ? [...data] : [data];
+    while (fila.length) {
+      const item = fila.shift();
+      if (!item || typeof item !== "object") continue;
+      const obj = item as Record<string, unknown>;
+      if (Array.isArray(obj["@graph"])) fila.push(...(obj["@graph"] as unknown[]));
+
+      const offers = obj.offers;
+      if (!offers) continue;
+      const offerArr = Array.isArray(offers) ? offers : [offers];
+      for (const off of offerArr) {
+        if (!off || typeof off !== "object") continue;
+        const o = off as Record<string, unknown>;
+        const preco = parsePreco(o.price ?? o.lowPrice);
+        const high  = parsePreco(o.highPrice);
+        if (preco) {
+          return { preco, referencia: high && high > preco ? high : null };
+        }
+      }
+    }
+  }
+  return { preco: null, referencia: null };
+}
+
+// 2. Preços via meta tags (Open Graph / Facebook commerce) — fallback
+function extrairPrecosMeta(html: string): { preco: number | null; referencia: number | null } {
+  const get = (prop: string): string | null => {
+    const m = html.match(new RegExp(`<meta[^>]+(?:property|name)=["']${prop}["'][^>]+content=["']([^"']+)["']`, "i"))
+           ?? html.match(new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']${prop}["']`, "i"));
+    return m?.[1] ?? null;
+  };
+  const preco = parsePreco(
+    get("product:price:amount") ?? get("og:price:amount") ?? get("og:product:price:amount")
+  );
+  const referencia = parsePreco(get("product:original_price:amount"));
+  return {
+    preco,
+    referencia: referencia && preco && referencia > preco ? referencia : null,
+  };
+}
+
 export async function GET(req: NextRequest) {
   const url = req.nextUrl.searchParams.get("url");
   if (!url) return NextResponse.json({ error: "URL obrigatória" }, { status: 400 });
@@ -261,7 +345,7 @@ export async function GET(req: NextRequest) {
   let hostname = "";
   try { hostname = new URL(url).hostname; } catch { /* ok */ }
 
-  const vazio = { titulo: null, imagem: null, descricao: null, loja };
+  const vazio = { titulo: null, imagem: null, descricao: null, loja, preco: null, preco_referencia: null };
 
   try {
     const userAgent = USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
@@ -306,7 +390,13 @@ export async function GET(req: NextRequest) {
 
     const descricao = (jsonLd.descricao ?? itemprop.descricao ?? ogDesc ?? null)?.slice(0, 500) ?? null;
 
-    return NextResponse.json({ titulo, imagem, descricao, loja });
+    // Preço: JSON-LD tem prioridade, meta tags como fallback
+    const precosJson = extrairPrecosJsonLd(html);
+    const precosMeta = extrairPrecosMeta(html);
+    const preco            = precosJson.preco      ?? precosMeta.preco      ?? null;
+    const preco_referencia = precosJson.referencia ?? precosMeta.referencia ?? null;
+
+    return NextResponse.json({ titulo, imagem, descricao, loja, preco, preco_referencia });
   } catch {
     return NextResponse.json(vazio);
   }
