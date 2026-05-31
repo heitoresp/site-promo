@@ -189,7 +189,6 @@ async function extrairMercadoLivre(url: string, html: string): Promise<{
       const clientSecret = process.env.ML_CLIENT_SECRET;
       let token: string | null = null;
 
-      console.log("[ML] clientId set:", !!clientId, "| clientSecret set:", !!clientSecret);
       if (clientId && clientSecret) {
         const tokenRes = await fetch("https://api.mercadolibre.com/oauth/token", {
           method: "POST",
@@ -197,14 +196,9 @@ async function extrairMercadoLivre(url: string, html: string): Promise<{
           body: new URLSearchParams({ grant_type: "client_credentials", client_id: clientId, client_secret: clientSecret }),
           signal: AbortSignal.timeout(5000),
         });
-        console.log("[ML] token status:", tokenRes.status);
         if (tokenRes.ok) {
           const td = await tokenRes.json() as { access_token?: string };
           token = td.access_token ?? null;
-          console.log("[ML] token obtido:", !!token);
-        } else {
-          const err = await tokenRes.text();
-          console.log("[ML] token erro:", err.slice(0, 200));
         }
       }
 
@@ -214,16 +208,14 @@ async function extrairMercadoLivre(url: string, html: string): Promise<{
           headers: { "Authorization": `Bearer ${token}`, "Accept": "application/json" },
           signal: AbortSignal.timeout(5000),
         });
-        console.log("[ML] products status:", r.status);
         if (r.ok) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const d = await r.json() as any;
           const pic = d?.pictures?.[0]?.secure_url ?? d?.pictures?.[0]?.url;
-          console.log("[ML] pic:", pic ?? "nenhuma");
           if (pic) imagem = pic;
         }
       }
-    } catch (e) { console.log("[ML] erro geral:", String(e)); }
+    } catch { /* ok */ }
   }
 
   return { titulo, imagem };
