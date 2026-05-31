@@ -13,6 +13,7 @@ import { PegarPromoButton, CupomButton, ShareButton } from "./PromoPageClient";
 import { ReportButton } from "@/components/ReportButton";
 import { ComentariosSection } from "@/components/ComentariosSection";
 import { StonksBar } from "@/components/StonksBar";
+import { PriceHistory } from "@/components/PriceHistory";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -202,6 +203,15 @@ export default async function PromoPage({ params }: PageProps) {
               />
             </div>
           </div>
+        </div>
+
+        {/* Histórico de preço + comparação */}
+        <div className="mt-8 border-t border-white/5 pt-8">
+          <PriceHistory
+            promoId={promo.id}
+            titulo={promo.titulo}
+            precoAtual={promo.preco_promo}
+          />
         </div>
 
         {/* Comentários */}
