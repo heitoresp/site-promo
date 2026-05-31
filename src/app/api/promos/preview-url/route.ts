@@ -137,14 +137,21 @@ function extrairShopee(url: string, html: string): { titulo?: string; imagem?: s
 
   // Imagem: og:image ou regex susercontent.com no HTML
   let imagem: string | undefined;
-  const ogI = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+susercontent[^"']+)["']/i)
-           ?? html.match(/<meta[^>]+content=["']([^"']+susercontent[^"']+)["'][^>]+property=["']og:image["']/i);
-  if (ogI?.[1]) {
-    imagem = ogI[1];
+
+  // 1. og:image genérico (qualquer conteúdo)
+  const ogIAny = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']{10,})["']/i)
+              ?? html.match(/<meta[^>]+content=["']([^"']{10,})["'][^>]+property=["']og:image["']/i);
+  console.log("[SHOPEE] og:image raw:", ogIAny?.[1] ?? "null");
+
+  if (ogIAny?.[1]) {
+    imagem = ogIAny[1];
   } else {
-    // Regex direto no HTML
-    const m = html.match(/https?:\/\/[a-z0-9-]+\.susercontent\.com\/file\/[A-Za-z0-9_-]+/i);
-    if (m) imagem = m[0];
+    // 2. Regex direto — qualquer URL de imagem da Shopee no HTML
+    const scMatch = html.match(/https?:\/\/[a-z0-9-]+\.susercontent\.com\/[A-Za-z0-9_/.-]+/i);
+    const cfMatch = html.match(/https?:\/\/cf\.shopee\.com\.br\/file\/[A-Za-z0-9_-]+/i);
+    const found = scMatch?.[0] ?? cfMatch?.[0];
+    console.log("[SHOPEE] regex imagem:", found ?? "nenhuma");
+    if (found) imagem = found;
   }
 
   return { titulo, imagem };
