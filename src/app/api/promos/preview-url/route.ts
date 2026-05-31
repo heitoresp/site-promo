@@ -112,55 +112,42 @@ function extrairH1(html: string): string | null {
 }
 
 // 5. Extração específica para Shopee
-// URL: shopee.com.br/produto-i.SHOPID.ITEMID
-// API pública: /api/v4/item/get?shopid=X&itemid=Y
-async function extrairShopee(url: string): Promise<{ titulo?: string; imagem?: string }> {
-  const isShopee = /shopee\.com\.br/.test(url);
-  if (!isShopee) return {};
+// API é bloqueada (403) — usa HTML da página com fallbacks:
+//   og:title para título, og:image ou regex susercontent.com para imagem
+function extrairShopee(url: string, html: string): { titulo?: string; imagem?: string } {
+  if (!/shopee\.com\.br/.test(url)) return {};
 
-  // Extrai shopid e itemid do final da URL
-  const match = url.match(/-i\.(\d+)\.(\d+)/);
-  if (!match) return {};
-  const [, shopid, itemid] = match;
-
-  try {
-    // Tenta v4 e v2
-    for (const version of ["v4", "v2"]) {
-      const apiRes = await fetch(
-        `https://shopee.com.br/api/${version}/item/get?shopid=${shopid}&itemid=${itemid}`,
-        {
-          headers: {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-            "Accept": "application/json",
-            "Referer": `https://shopee.com.br/i.${shopid}.${itemid}`,
-            "x-api-source": "pc",
-            "x-sz-sdk-version": "3.0.0",
-          },
-          signal: AbortSignal.timeout(6000),
-        }
-      );
-      console.log(`[SHOPEE] ${version} status:`, apiRes.status);
-      if (!apiRes.ok) continue;
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = await apiRes.json() as any;
-      console.log("[SHOPEE] data keys:", Object.keys(data ?? {}).join(", "));
-      const item = data?.data?.item ?? data?.item ?? data?.data;
-      console.log("[SHOPEE] item keys:", Object.keys(item ?? {}).slice(0, 10).join(", "));
-      if (!item) continue;
-
-      const titulo: string | undefined = typeof item.name === "string" ? item.name.slice(0, 200) : undefined;
-      console.log("[SHOPEE] titulo:", titulo ?? "null");
-
-      const imageHash: string | undefined =
-        item.image ?? (Array.isArray(item.images) && item.images.length > 0 ? item.images[0] : undefined);
-      console.log("[SHOPEE] imageHash:", imageHash ?? "null");
-
-      const imagem = imageHash ? `https://down-br.img.susercontent.com/file/${imageHash}` : undefined;
-      return { titulo, imagem };
+  // Título: og:title ou slug da URL
+  let titulo: string | undefined;
+  const ogT = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']{5,300})["']/i)
+           ?? html.match(/<meta[^>]+content=["']([^"']{5,300})["'][^>]+property=["']og:title["']/i);
+  if (ogT?.[1] && !/shopee/i.test(ogT[1])) {
+    titulo = ogT[1].replace(/\s*\|\s*Shopee.*$/i, "").trim().slice(0, 200);
+  }
+  // Fallback: slug da URL (parte antes de -i.SHOPID)
+  if (!titulo) {
+    const slug = url.match(/shopee\.com\.br\/([^?#]+?)-i\.\d+\.\d+/)?.[1];
+    if (slug) {
+      titulo = decodeURIComponent(slug)
+        .replace(/-/g, " ")
+        .replace(/\b\w/g, c => c.toUpperCase())
+        .slice(0, 200);
     }
-    return {};
-  } catch (e) { console.log("[SHOPEE] erro:", String(e)); return {}; }
+  }
+
+  // Imagem: og:image ou regex susercontent.com no HTML
+  let imagem: string | undefined;
+  const ogI = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+susercontent[^"']+)["']/i)
+           ?? html.match(/<meta[^>]+content=["']([^"']+susercontent[^"']+)["'][^>]+property=["']og:image["']/i);
+  if (ogI?.[1]) {
+    imagem = ogI[1];
+  } else {
+    // Regex direto no HTML
+    const m = html.match(/https?:\/\/[a-z0-9-]+\.susercontent\.com\/file\/[A-Za-z0-9_-]+/i);
+    if (m) imagem = m[0];
+  }
+
+  return { titulo, imagem };
 }
 
 // 6. Extração específica para Amazon
@@ -300,7 +287,7 @@ export async function GET(req: NextRequest) {
 
     // Tenta cada estratégia em ordem de confiabilidade
     const ml        = await extrairMercadoLivre(url, html);
-    const shopee    = await extrairShopee(url);
+    const shopee    = extrairShopee(url, html);
     const amz       = extrairAmazon(html, hostname);
     const jsonLd    = extrairJsonLd(html);
     const itemprop  = extrairItemprop(html);
