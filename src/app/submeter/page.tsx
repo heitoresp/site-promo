@@ -42,6 +42,8 @@ export default function SubmeterPage() {
   const [sucesso,      setSucesso]      = useState(false);
   const [erro,         setErro]         = useState("");
   const [linkAfiliado, setLinkAfiliado] = useState<string | null>(null);
+  // Preço de referência foi puxado automaticamente da loja?
+  const [refAuto,      setRefAuto]      = useState(false);
 
   const linkInputRef = useRef<HTMLInputElement>(null);
   const fetchTimer   = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -60,6 +62,12 @@ export default function SubmeterPage() {
         if (data.imagem && !imagemUrl) setImagemUrl(data.imagem);
         if (data.descricao && !descricao) setDescricao(data.descricao);
         if (data.loja && !loja) setLoja(data.loja);
+        // Preço atual e preço de referência (riscado) extraídos da loja
+        if (data.preco && !precoPromo) setPrecoPromo(String(data.preco));
+        if (data.preco_referencia && !precoOriginal) {
+          setPrecoOriginal(String(data.preco_referencia));
+          setRefAuto(true);
+        }
       } catch {
         // silencioso
       } finally {
@@ -107,10 +115,21 @@ export default function SubmeterPage() {
     }
   }
 
+  // Inputs são type="number" → valor já vem com ponto decimal
+  const pPromo = parseFloat(precoPromo);
+  const pOrig  = parseFloat(precoOriginal);
   const desconto =
-    precoOriginal && precoPromo
-      ? Math.round((1 - parseFloat(precoPromo) / parseFloat(precoOriginal)) * 100)
+    pOrig > 0 && pPromo > 0 && pOrig > pPromo
+      ? Math.round((1 - pPromo / pOrig) * 100)
       : null;
+
+  // Veredito automático — dá a "noção se vale a pena" antes de enviar
+  const veredito =
+    desconto == null ? null
+    : desconto >= 50 ? { label: "Desconto excelente", emoji: "🔥🔥🔥", cor: "text-red-400",    bg: "bg-red-500/10 border-red-500/25" }
+    : desconto >= 30 ? { label: "Ótimo desconto",      emoji: "🔥🔥",   cor: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/25" }
+    : desconto >= 15 ? { label: "Bom desconto",        emoji: "🔥",     cor: "text-amber-400",  bg: "bg-amber-500/10 border-amber-500/25" }
+    :                  { label: "Desconto pequeno",    emoji: "🙂",     cor: "text-gray-300",   bg: "bg-white/5 border-white/10" };
 
   if (sucesso) {
     return (
@@ -269,13 +288,20 @@ export default function SubmeterPage() {
                 </div>
               </div>
               <div className="space-y-1">
-                <p className="text-xs text-gray-500">Preço original</p>
+                <p className="text-xs text-gray-500 flex items-center gap-1.5">
+                  Preço original
+                  {refAuto && (
+                    <span className="text-[10px] text-green-400 font-semibold inline-flex items-center gap-0.5">
+                      <Sparkles size={9} /> da loja
+                    </span>
+                  )}
+                </p>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">R$</span>
                   <input
                     type="number"
                     value={precoOriginal}
-                    onChange={e => setPrecoOriginal(e.target.value)}
+                    onChange={e => { setPrecoOriginal(e.target.value); setRefAuto(false); }}
                     placeholder="349,90"
                     step="0.01"
                     min="0"
@@ -284,10 +310,21 @@ export default function SubmeterPage() {
                 </div>
               </div>
             </div>
-            {desconto !== null && desconto > 0 && (
-              <p className="text-sm text-green-400 font-bold animate-fade-in">
-                🔥 {desconto}% de desconto!
-              </p>
+
+            {/* Veredito automático do desconto */}
+            {veredito && desconto !== null ? (
+              <div className={`flex items-center justify-between px-3 py-2 rounded-lg border animate-fade-in ${veredito.bg}`}>
+                <span className={`text-sm font-bold ${veredito.cor}`}>
+                  {veredito.emoji} {veredito.label}
+                </span>
+                <span className="text-sm font-extrabold text-brand-400">-{desconto}%</span>
+              </div>
+            ) : (
+              precoPromo.trim() !== "" && (
+                <p className="text-xs text-gray-500">
+                  💡 Informe o &quot;Preço original&quot; pra calcular o desconto — ou compare nas outras lojas pelos botões que aparecem na página da promo.
+                </p>
+              )
             )}
           </div>
 
