@@ -353,8 +353,16 @@ export default function SubmeterPage() {
           {/* URL da imagem */}
           <div className="glass-card p-5 space-y-2">
             <label className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-              <ImageIcon size={13} /> URL da imagem <span className="text-gray-600 font-normal normal-case">(auto-preenchido)</span>
+              <ImageIcon size={13} /> URL da imagem{" "}
+              <span className="text-gray-600 font-normal normal-case">
+                {loja === "Shopee" ? "(cole o link da imagem)" : "(auto-preenchido)"}
+              </span>
             </label>
+            {loja === "Shopee" && !imagemUrl && (
+              <p className="text-xs text-yellow-400/80">
+                A Shopee bloqueia busca automática de imagens. Clique com botão direito na foto do produto → "Copiar endereço da imagem" e cole aqui.
+              </p>
+            )}
             <input
               type="url"
               value={imagemUrl}

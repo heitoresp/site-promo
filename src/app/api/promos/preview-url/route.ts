@@ -135,24 +135,10 @@ function extrairShopee(url: string, html: string): { titulo?: string; imagem?: s
     }
   }
 
-  // Imagem: og:image ou regex susercontent.com no HTML
-  let imagem: string | undefined;
-
-  // 1. og:image genérico (qualquer conteúdo)
-  const ogIAny = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']{10,})["']/i)
-              ?? html.match(/<meta[^>]+content=["']([^"']{10,})["'][^>]+property=["']og:image["']/i);
-  console.log("[SHOPEE] og:image raw:", ogIAny?.[1] ?? "null");
-
-  if (ogIAny?.[1]) {
-    imagem = ogIAny[1];
-  } else {
-    // 2. Regex direto — qualquer URL de imagem da Shopee no HTML
-    const scMatch = html.match(/https?:\/\/[a-z0-9-]+\.susercontent\.com\/[A-Za-z0-9_/.-]+/i);
-    const cfMatch = html.match(/https?:\/\/cf\.shopee\.com\.br\/file\/[A-Za-z0-9_-]+/i);
-    const found = scMatch?.[0] ?? cfMatch?.[0];
-    console.log("[SHOPEE] regex imagem:", found ?? "nenhuma");
-    if (found) imagem = found;
-  }
+  // Imagem: Shopee não embute imagens no HTML server-side (proteção anti-bot)
+  // og:image e susercontent.com URLs só aparecem após JS executar no browser.
+  // Campo de imagem fica vazio — usuário cola manualmente se quiser.
+  const imagem = undefined;
 
   return { titulo, imagem };
 }
