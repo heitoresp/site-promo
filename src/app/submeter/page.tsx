@@ -358,9 +358,11 @@ export default function SubmeterPage() {
                 {loja === "Shopee" ? "(cole o link da imagem)" : "(auto-preenchido)"}
               </span>
             </label>
-            {loja === "Shopee" && !imagemUrl && (
+            {!imagemUrl && loja && loja !== "" && (
               <p className="text-xs text-yellow-400/80">
-                A Shopee bloqueia busca automática de imagens. Clique com botão direito na foto do produto → "Copiar endereço da imagem" e cole aqui.
+                {loja === "Shopee"
+                  ? 'A Shopee bloqueia busca automática de imagens. Clique com botão direito na foto do produto → "Copiar endereço da imagem" e cole aqui.'
+                  : 'Não foi possível buscar a imagem automaticamente. Clique com botão direito na foto do produto → "Copiar endereço da imagem" e cole aqui.'}
               </p>
             )}
             <input

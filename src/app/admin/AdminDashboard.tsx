@@ -10,7 +10,7 @@ import { formatarPreco, tempoRelativo } from "@/lib/utils";
 import {
   Plus, LogOut, Flame, Zap, TrendingUp, Bot,
   Trash2, Eye, EyeOff, ExternalLink, X, Check, Flag,
-  Clock, CheckCircle, XCircle, User,
+  Clock, CheckCircle, XCircle, User, Pencil,
 } from "lucide-react";
 
 interface Props {
@@ -45,6 +45,13 @@ export function AdminDashboard({ user, promos: promosIniciais, pendentes: penden
   const [erro, setErro]       = useState("");
   const [sucesso, setSucesso] = useState("");
   const [modal, setModal]     = useState(false);
+
+  // Estado do modal de edição
+  const [editModal, setEditModal]   = useState(false);
+  const [editPromo, setEditPromo]   = useState<Promo | null>(null);
+  const [editForm,  setEditForm]    = useState<Partial<Promo>>({});
+  const [editLoading, setEditLoading] = useState(false);
+  const [editErro, setEditErro]     = useState("");
 
   async function logout() {
     const supabase = createClient();
@@ -126,6 +133,51 @@ export function AdminDashboard({ user, promos: promosIniciais, pendentes: penden
     if (res.ok) {
       setPendentes(prev => prev.filter(p => p.id !== id));
       setSucesso("Promo rejeitada.");
+    }
+  }
+
+  function abrirEditar(promo: Promo) {
+    setEditPromo(promo);
+    setEditForm({
+      titulo:         promo.titulo,
+      descricao:      promo.descricao ?? "",
+      preco_promo:    promo.preco_promo,
+      preco_original: promo.preco_original ?? undefined,
+      cupom:          promo.cupom ?? "",
+      imagem_url:     promo.imagem_url ?? "",
+      loja:           promo.loja ?? "",
+      categoria:      promo.categoria ?? "",
+      link_afiliado:  promo.link_afiliado ?? "",
+    });
+    setEditErro("");
+    setEditModal(true);
+  }
+
+  async function salvarEdicao() {
+    if (!editPromo) return;
+    setEditLoading(true);
+    setEditErro("");
+    try {
+      const res = await fetch(`/api/admin/promos/${editPromo.id}/editar`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editForm),
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        setEditErro(d.error ?? "Erro ao salvar.");
+        return;
+      }
+      // Atualiza lista local
+      const atualizada = { ...editPromo, ...editForm } as Promo;
+      setPromos(prev => prev.map(p => p.id === editPromo.id ? atualizada : p));
+      setPendentes(prev => prev.map(p => p.id === editPromo.id ? atualizada : p));
+      setSucesso("Promo atualizada com sucesso!");
+      setEditModal(false);
+    } catch {
+      setEditErro("Erro de rede.");
+    } finally {
+      setEditLoading(false);
     }
   }
 
@@ -268,6 +320,12 @@ export function AdminDashboard({ user, promos: promosIniciais, pendentes: penden
                       <CheckCircle size={14} /> Aprovar
                     </button>
                     <button
+                      onClick={() => abrirEditar(promo)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 text-sm font-bold transition-all"
+                    >
+                      <Pencil size={14} /> Editar
+                    </button>
+                    <button
                       onClick={() => rejeitar(promo.id)}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 text-sm font-bold transition-all"
                     >
@@ -380,6 +438,13 @@ export function AdminDashboard({ user, promos: promosIniciais, pendentes: penden
                           {promo.ativo ? <Eye size={14} /> : <EyeOff size={14} />}
                         </button>
                         <button
+                          onClick={() => abrirEditar(promo)}
+                          className="p-1.5 rounded-lg text-gray-600 hover:text-blue-400 hover:bg-blue-500/10 transition-all"
+                          title="Editar"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        <button
                           onClick={() => deletar(promo.id)}
                           className="p-1.5 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-all"
                           title="Deletar"
@@ -403,6 +468,108 @@ export function AdminDashboard({ user, promos: promosIniciais, pendentes: penden
         </>
         )}
       </main>
+
+      {/* Modal de edição */}
+      {editModal && editPromo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="glass-card w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-5 border-b border-white/5">
+              <h3 className="font-bold text-white flex items-center gap-2">
+                <Pencil size={16} className="text-blue-400" />
+                Editar Promo
+              </h3>
+              <button onClick={() => setEditModal(false)} className="p-1.5 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-white/5 transition-all">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              {/* Título */}
+              <div>
+                <label className="text-xs font-medium text-gray-400 block mb-1">Título *</label>
+                <input value={editForm.titulo ?? ""} onChange={e => setEditForm(p => ({ ...p, titulo: e.target.value }))}
+                  className="search-input w-full" placeholder="Título do produto" />
+              </div>
+              {/* Preços */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-gray-400 block mb-1">Preço Promo (R$) *</label>
+                  <input type="number" step="0.01" min="0"
+                    value={editForm.preco_promo ?? ""}
+                    onChange={e => setEditForm(p => ({ ...p, preco_promo: parseFloat(e.target.value) || 0 }))}
+                    className="search-input w-full" placeholder="199.90" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-400 block mb-1">Preço Original (R$)</label>
+                  <input type="number" step="0.01" min="0"
+                    value={editForm.preco_original ?? ""}
+                    onChange={e => setEditForm(p => ({ ...p, preco_original: e.target.value ? parseFloat(e.target.value) : undefined }))}
+                    className="search-input w-full" placeholder="399.90" />
+                </div>
+              </div>
+              {/* Link */}
+              <div>
+                <label className="text-xs font-medium text-gray-400 block mb-1">Link de Afiliado</label>
+                <input type="url" value={editForm.link_afiliado ?? ""}
+                  onChange={e => setEditForm(p => ({ ...p, link_afiliado: e.target.value }))}
+                  className="search-input w-full" placeholder="https://..." />
+              </div>
+              {/* Imagem */}
+              <div>
+                <label className="text-xs font-medium text-gray-400 block mb-1">URL da Imagem</label>
+                <input type="url" value={editForm.imagem_url ?? ""}
+                  onChange={e => setEditForm(p => ({ ...p, imagem_url: e.target.value }))}
+                  className="search-input w-full" placeholder="https://..." />
+              </div>
+              {/* Loja e Categoria */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-gray-400 block mb-1">Loja</label>
+                  <select value={editForm.loja ?? ""} onChange={e => setEditForm(p => ({ ...p, loja: e.target.value }))} className="search-input w-full">
+                    {lojas.map(l => <option key={l.slug} value={l.slug}>{l.nome}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-400 block mb-1">Categoria</label>
+                  <select value={editForm.categoria ?? ""} onChange={e => setEditForm(p => ({ ...p, categoria: e.target.value }))} className="search-input w-full">
+                    {categorias.map(c => <option key={c.slug} value={c.slug}>{c.icone} {c.nome}</option>)}
+                  </select>
+                </div>
+              </div>
+              {/* Cupom */}
+              <div>
+                <label className="text-xs font-medium text-gray-400 block mb-1">Cupom</label>
+                <input value={editForm.cupom ?? ""}
+                  onChange={e => setEditForm(p => ({ ...p, cupom: e.target.value }))}
+                  className="search-input w-full font-mono uppercase" placeholder="PROMO10" />
+              </div>
+              {/* Descrição */}
+              <div>
+                <label className="text-xs font-medium text-gray-400 block mb-1">Descrição</label>
+                <textarea rows={2} value={editForm.descricao ?? ""}
+                  onChange={e => setEditForm(p => ({ ...p, descricao: e.target.value }))}
+                  className="search-input w-full resize-none" placeholder="Detalhes da promo..." />
+              </div>
+
+              {editErro && (
+                <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{editErro}</p>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setEditModal(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-white/10 text-sm text-gray-400 hover:text-white hover:border-white/20 transition-all">
+                  Cancelar
+                </button>
+                <button onClick={salvarEdicao} disabled={editLoading}
+                  className="flex-1 btn-promo flex items-center justify-center gap-2">
+                  {editLoading
+                    ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    : <><Check size={15} /> Salvar</>}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de criação */}
       {modal && (
