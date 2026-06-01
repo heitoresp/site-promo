@@ -12,7 +12,7 @@ import {
   formatarPreco, formatarDesconto, tempoRelativo, isNova, isExpirando, urlWhatsApp
 } from "@/lib/utils";
 import { labelTemperatura } from "@/lib/temperatura";
-import { StonksBar } from "./StonksBar";
+import { VotoBar } from "./VotoBar";
 
 interface PromoCardProps {
   promo: Promo;
@@ -21,10 +21,12 @@ interface PromoCardProps {
 export function PromoCard({ promo }: PromoCardProps) {
   const [copiado, setCopiado]   = useState(false);
   const [loading, setLoading]   = useState(false);
+  // Temperatura reativa: atualiza ao vivo quando o usuário vota
+  const [temperatura, setTemperatura] = useState<number | null>(promo.temperatura ?? null);
   const nova      = isNova(promo.criado_em);
   const expirando = isExpirando(promo.expira_em);
   const isHot     = promo.is_hot || promo.cliques > 50;
-  const temp      = labelTemperatura(promo.temperatura ?? null);
+  const temp      = labelTemperatura(temperatura);
 
   async function handlePegarPromo(e: React.MouseEvent) {
     e.preventDefault();
@@ -117,12 +119,12 @@ export function PromoCard({ promo }: PromoCardProps) {
           </h3>
         </Link>
 
-        {/* Temperatura da promo */}
-        {promo.temperatura !== null && promo.temperatura !== undefined && (
+        {/* Temperatura da promo (desconto + votos da comunidade) */}
+        {temperatura !== null && temperatura !== undefined && (
           <div className={`flex items-center gap-1.5 text-xs font-semibold ${temp.cor}`}>
             <span>{temp.emoji}</span>
             <span>{temp.label}</span>
-            <span className="text-gray-600 font-normal">· {promo.temperatura}pts</span>
+            <span className="text-gray-600 font-normal">· {temperatura}pts</span>
           </div>
         )}
 
@@ -180,8 +182,8 @@ export function PromoCard({ promo }: PromoCardProps) {
           </div>
         </div>
 
-        {/* Votação Stonks */}
-        <StonksBar promoId={promo.id} compact />
+        {/* Votação da comunidade — recalcula a temperatura ao votar */}
+        <VotoBar promoId={promo.id} compact onTemperatura={setTemperatura} />
 
         {/* CTA */}
         <button

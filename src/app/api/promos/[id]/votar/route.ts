@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 
-type Tipo = "stonks" | "super_stonks" | "not_stonks";
+type Tipo = "quente" | "frio";
+const TIPOS_VALIDOS: Tipo[] = ["quente", "frio"];
 
 async function getContagens(promoId: string) {
   const supabase = createServiceRoleClient();
@@ -10,11 +11,22 @@ async function getContagens(promoId: string) {
     .select("tipo")
     .eq("promo_id", promoId);
 
-  const contagens = { stonks: 0, super_stonks: 0, not_stonks: 0 };
+  const contagens = { quente: 0, frio: 0 };
   for (const v of data ?? []) {
     if (v.tipo in contagens) contagens[v.tipo as Tipo]++;
   }
   return contagens;
+}
+
+// Lê a temperatura recalculada pelo trigger (desconto + votos)
+async function getTemperatura(promoId: string): Promise<number | null> {
+  const supabase = createServiceRoleClient();
+  const { data } = await supabase
+    .from("promos")
+    .select("temperatura")
+    .eq("id", promoId)
+    .maybeSingle();
+  return data?.temperatura ?? null;
 }
 
 export async function POST(
@@ -33,7 +45,7 @@ export async function POST(
   // Valida body
   const body = await req.json().catch(() => ({}));
   const tipo: Tipo = body.tipo;
-  if (!["stonks", "super_stonks", "not_stonks"].includes(tipo)) {
+  if (!TIPOS_VALIDOS.includes(tipo)) {
     return NextResponse.json({ error: "Tipo inválido" }, { status: 400 });
   }
 
@@ -47,35 +59,36 @@ export async function POST(
     .eq("user_id", user.id)
     .maybeSingle();
 
+  let voto: Tipo | null = tipo;
+
   if (existente) {
     if (existente.tipo === tipo) {
       // Mesmo voto → remove (toggle off)
       await serviceClient.from("votos").delete().eq("id", existente.id);
-      const contagens = await getContagens(promoId);
-      return NextResponse.json({ voto: null, contagens });
+      voto = null;
     } else {
       // Voto diferente → atualiza
-      await serviceClient
-        .from("votos")
-        .update({ tipo })
-        .eq("id", existente.id);
-      const contagens = await getContagens(promoId);
-      return NextResponse.json({ voto: tipo, contagens });
+      await serviceClient.from("votos").update({ tipo }).eq("id", existente.id);
     }
+  } else {
+    // Novo voto
+    await serviceClient.from("votos").insert({
+      promo_id: promoId,
+      user_id:  user.id,
+      tipo,
+    });
   }
 
-  // Novo voto
-  await serviceClient.from("votos").insert({
-    promo_id: promoId,
-    user_id:  user.id,
-    tipo,
-  });
+  // O trigger no banco já recalculou a temperatura
+  const [contagens, temperatura] = await Promise.all([
+    getContagens(promoId),
+    getTemperatura(promoId),
+  ]);
 
-  const contagens = await getContagens(promoId);
-  return NextResponse.json({ voto: tipo, contagens });
+  return NextResponse.json({ voto, contagens, temperatura });
 }
 
-// Retorna contagens + voto do usuário logado (se houver)
+// Retorna contagens + voto do usuário logado (se houver) + temperatura atual
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -85,8 +98,9 @@ export async function GET(
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [contagens, meuVotoRes] = await Promise.all([
+  const [contagens, temperatura, meuVotoRes] = await Promise.all([
     getContagens(promoId),
+    getTemperatura(promoId),
     user
       ? createServiceRoleClient()
           .from("votos")
@@ -99,6 +113,7 @@ export async function GET(
 
   return NextResponse.json({
     contagens,
+    temperatura,
     meuVoto: meuVotoRes.data?.tipo ?? null,
   });
 }

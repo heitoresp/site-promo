@@ -12,7 +12,7 @@ import { ArrowLeft, Flame, Sparkles, ShoppingBag, Clock } from "lucide-react";
 import { PegarPromoButton, CupomButton, ShareButton } from "./PromoPageClient";
 import { ReportButton } from "@/components/ReportButton";
 import { ComentariosSection } from "@/components/ComentariosSection";
-import { StonksBar } from "@/components/StonksBar";
+import { VotoBar } from "@/components/VotoBar";
 import { PriceHistory } from "@/components/PriceHistory";
 
 interface PageProps {
@@ -175,10 +175,10 @@ export default async function PromoPage({ params }: PageProps) {
               </div>
             )}
 
-            {/* Votação Stonks */}
+            {/* Votação da comunidade */}
             <div className="border-t border-white/5 pt-4">
-              <p className="text-xs text-gray-500 mb-2 font-medium">O que você acha dessa promo?</p>
-              <StonksBar promoId={promo.id} />
+              <p className="text-xs text-gray-500 mb-2 font-medium">Essa promo vale a pena?</p>
+              <VotoBar promoId={promo.id} />
             </div>
 
             {/* Engajamento */}
