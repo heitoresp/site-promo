@@ -12,7 +12,7 @@ export async function GET(
 
   const { data, error } = await supabase
     .from("comentarios")
-    .select("id, user_nome, user_avatar, conteudo, criado_em")
+    .select("id, user_id, user_nome, user_avatar, conteudo, criado_em")
     .eq("promo_id", promoId)
     .eq("ativo", true)
     .order("criado_em", { ascending: false })
@@ -20,7 +20,23 @@ export async function GET(
 
   if (error) return NextResponse.json({ erro: "Erro ao buscar comentários." }, { status: 500 });
 
-  return NextResponse.json({ comentarios: data });
+  // Anexa o XP do autor (para o selo de nível), em lote
+  const ids = [...new Set((data ?? []).map((c) => c.user_id).filter(Boolean))];
+  const xpPorUser: Record<string, number> = {};
+  if (ids.length > 0) {
+    const { data: perfis } = await supabase
+      .from("perfis")
+      .select("user_id, xp_total")
+      .in("user_id", ids);
+    for (const p of perfis ?? []) xpPorUser[p.user_id] = p.xp_total;
+  }
+
+  const comentarios = (data ?? []).map((c) => ({
+    ...c,
+    xp: xpPorUser[c.user_id] ?? 0,
+  }));
+
+  return NextResponse.json({ comentarios });
 }
 
 // POST /api/promos/[id]/comentarios — adiciona comentário
@@ -64,7 +80,7 @@ export async function POST(
       user_avatar: (user.user_metadata?.avatar_url as string | undefined) ?? null,
       conteudo:    conteudo.trim(),
     })
-    .select("id, user_nome, user_avatar, conteudo, criado_em")
+    .select("id, user_id, user_nome, user_avatar, conteudo, criado_em")
     .single();
 
   if (error) {
@@ -72,5 +88,15 @@ export async function POST(
     return NextResponse.json({ erro: "Erro ao salvar comentário." }, { status: 500 });
   }
 
-  return NextResponse.json({ comentario: data }, { status: 201 });
+  // XP atual do autor (para o selo de nível no comentário recém-criado)
+  const { data: perfil } = await supabase
+    .from("perfis")
+    .select("xp_total")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  return NextResponse.json(
+    { comentario: { ...data, xp: perfil?.xp_total ?? 0 } },
+    { status: 201 }
+  );
 }

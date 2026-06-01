@@ -20,6 +20,7 @@ export interface Promo {
   cliques: number;
   temperatura: number | null; // 0–100, calculado automaticamente via ML
   denuncias: number | null;   // contador de denúncias de promo expirada
+  enviado_por?: string | null; // user_id de quem submeteu (null = admin/bot)
   // Campos extras da view promos_hot
   is_nova?: boolean;
   is_hot?: boolean;
@@ -95,4 +96,43 @@ export interface HistoricoPrecoStats {
 export interface HistoricoPrecoResponse {
   historico: HistoricoPreco[];
   stats: HistoricoPrecoStats | null;
+}
+
+// ============================================================
+// Gamificação
+// ============================================================
+export interface Badge {
+  slug: string;
+  nome: string;
+  descricao: string;
+  emoji: string;
+  cor: string;
+  ordem: number;
+  concedido_em?: string; // presente quando vem de usuario_badges
+}
+
+export interface Perfil {
+  user_id: string;
+  nome: string | null;
+  avatar_url: string | null;
+  xp_total: number;
+  criado_em: string;
+}
+
+export interface PerfilDetalhe extends Perfil {
+  badges: Badge[];
+  stats: {
+    promos_aprovadas: number;
+    votos_quentes: number;
+    cliques_totais: number;
+  };
+  promos: Promo[];
+}
+
+export interface RankingUsuario {
+  user_id: string;
+  nome: string | null;
+  avatar_url: string | null;
+  xp_total: number;
+  promos_aprovadas: number;
 }

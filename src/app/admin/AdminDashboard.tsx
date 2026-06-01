@@ -5,12 +5,15 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 // createClient ainda usado para logout
 import type { User } from "@supabase/supabase-js";
-import type { Promo, Categoria, Loja, CreatePromoPayload } from "@/types/promo";
+import type { Promo, Categoria, Loja, CreatePromoPayload, Badge } from "@/types/promo";
+import type { PerfilAdmin } from "./page";
 import { formatarPreco, tempoRelativo } from "@/lib/utils";
+import { nivelDoXp } from "@/lib/gamificacao";
 import {
   Plus, LogOut, Flame, Zap, TrendingUp, Bot,
   Trash2, Eye, EyeOff, ExternalLink, X, Check, Flag,
   Clock, CheckCircle, XCircle, User as UserIcon, Pencil,
+  Trophy, Minus,
 } from "lucide-react";
 
 interface Props {
@@ -20,6 +23,8 @@ interface Props {
   categorias: Categoria[];
   lojas: Loja[];
   stats: { total: number; ativas: number; bot: number; cliques: number };
+  perfis: PerfilAdmin[];
+  catalogoBadges: Badge[];
 }
 
 const FORM_VAZIO: CreatePromoPayload = {
@@ -35,11 +40,12 @@ const FORM_VAZIO: CreatePromoPayload = {
   origem:         "manual",
 };
 
-export function AdminDashboard({ user, promos: promosIniciais, pendentes: pendentesIniciais, categorias, lojas, stats }: Props) {
+export function AdminDashboard({ user, promos: promosIniciais, pendentes: pendentesIniciais, categorias, lojas, stats, perfis: perfisIniciais, catalogoBadges }: Props) {
   const router   = useRouter();
   const [promos, setPromos]       = useState(promosIniciais);
   const [pendentes, setPendentes] = useState(pendentesIniciais);
-  const [aba, setAba]             = useState<"promos" | "pendentes">("promos");
+  const [perfis, setPerfis]       = useState(perfisIniciais);
+  const [aba, setAba]             = useState<"promos" | "pendentes" | "usuarios">("promos");
   const [form, setForm]     = useState<CreatePromoPayload>(FORM_VAZIO);
   const [loading, setLoading] = useState(false);
   const [erro, setErro]       = useState("");
@@ -193,6 +199,45 @@ export function AdminDashboard({ user, promos: promosIniciais, pendentes: penden
     }
   }
 
+  // ── Gamificação (admin) ──
+  async function ajustarXp(userId: string, delta: number) {
+    const perfil = perfis.find(p => p.user_id === userId);
+    if (!perfil) return;
+    const novoBonus = perfil.xp_bonus + delta;
+
+    const res = await fetch(`/api/admin/usuarios/${userId}/xp`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ xp_bonus: novoBonus }),
+    });
+    if (res.ok) {
+      const { perfil: atualizado } = await res.json();
+      setPerfis(prev => prev.map(p => p.user_id === userId
+        ? { ...p, xp_bonus: atualizado.xp_bonus, xp_total: atualizado.xp_total }
+        : p));
+    } else {
+      alert("Erro ao ajustar XP.");
+    }
+  }
+
+  async function toggleBadge(userId: string, slug: string, tem: boolean) {
+    const url = `/api/admin/usuarios/${userId}/badges`;
+    const res = tem
+      ? await fetch(`${url}?slug=${encodeURIComponent(slug)}`, { method: "DELETE" })
+      : await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ badge_slug: slug }),
+        });
+    if (res.ok) {
+      setPerfis(prev => prev.map(p => p.user_id === userId
+        ? { ...p, badges: tem ? p.badges.filter(b => b !== slug) : [...p.badges, slug] }
+        : p));
+    } else {
+      alert("Erro ao atualizar conquista.");
+    }
+  }
+
   return (
     <div className="min-h-screen">
       {/* Header Admin */}
@@ -268,6 +313,17 @@ export function AdminDashboard({ user, promos: promosIniciais, pendentes: penden
               </span>
             )}
           </button>
+          <button
+            onClick={() => setAba("usuarios")}
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+              aba === "usuarios"
+                ? "bg-white/10 text-white"
+                : "text-gray-500 hover:text-gray-300"
+            }`}
+          >
+            <Trophy size={13} />
+            Usuários
+          </button>
         </div>
 
         {sucesso && (
@@ -334,6 +390,77 @@ export function AdminDashboard({ user, promos: promosIniciais, pendentes: penden
                   </div>
                 </div>
               ))
+            )}
+          </div>
+        )}
+
+        {/* ── ABA USUÁRIOS (gamificação) ── */}
+        {aba === "usuarios" && (
+          <div className="space-y-3">
+            {perfis.length === 0 ? (
+              <div className="glass-card p-10 text-center text-gray-600">
+                <Trophy size={32} className="text-gray-600 mx-auto mb-3" />
+                Nenhum usuário cadastrado ainda
+              </div>
+            ) : (
+              perfis.map((p) => {
+                const { nivel } = nivelDoXp(p.xp_total);
+                const nome = p.nome ?? "Caçador";
+                return (
+                  <div key={p.user_id} className="glass-card p-5 space-y-4">
+                    {/* Cabeçalho do usuário */}
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-brand-600 flex items-center justify-center text-xs font-bold text-white shrink-0">
+                        {nome.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <a href={`/usuario/${p.user_id}`} target="_blank" rel="noopener noreferrer"
+                          className="font-semibold text-gray-100 hover:text-brand-400 transition-colors truncate block">
+                          {nome}
+                        </a>
+                        <p className={`text-xs font-medium ${nivel.cor}`}>{nivel.emoji} {nivel.nome}</p>
+                      </div>
+                      {/* Controle de XP */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div className="text-right mr-1">
+                          <p className="text-lg font-extrabold text-amber-400 tabular-nums leading-none">{p.xp_total}</p>
+                          <p className="text-[10px] text-gray-600">XP{p.xp_bonus !== 0 ? ` (bônus ${p.xp_bonus > 0 ? "+" : ""}${p.xp_bonus})` : ""}</p>
+                        </div>
+                        <button onClick={() => ajustarXp(p.user_id, -10)} title="-10 XP"
+                          className="w-7 h-7 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 flex items-center justify-center">
+                          <Minus size={13} />
+                        </button>
+                        <button onClick={() => ajustarXp(p.user_id, 10)} title="+10 XP"
+                          className="w-7 h-7 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500/20 flex items-center justify-center">
+                          <Plus size={13} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Conquistas (toggle) */}
+                    <div className="flex flex-wrap gap-1.5">
+                      {catalogoBadges.map((b) => {
+                        const tem = p.badges.includes(b.slug);
+                        return (
+                          <button
+                            key={b.slug}
+                            onClick={() => toggleBadge(p.user_id, b.slug, tem)}
+                            title={b.descricao + (tem ? " (clique para remover)" : " (clique para conceder)")}
+                            className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs border transition-all ${
+                              tem
+                                ? "border-white/20 bg-white/10 text-white"
+                                : "border-white/5 bg-transparent text-gray-600 hover:text-gray-400 hover:border-white/10"
+                            }`}
+                          >
+                            <span className={tem ? "" : "grayscale opacity-60"}>{b.emoji}</span>
+                            {b.nome}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
         )}
