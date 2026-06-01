@@ -14,6 +14,7 @@ import { ReportButton } from "@/components/ReportButton";
 import { ComentariosSection } from "@/components/ComentariosSection";
 import { VotoBar } from "@/components/VotoBar";
 import { PriceHistory } from "@/components/PriceHistory";
+import { NivelBadge } from "@/components/NivelBadge";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -28,6 +29,19 @@ async function getPromo(id: string): Promise<Promo | null> {
     .eq("ativo", true)
     .single();
   return data as Promo | null;
+}
+
+interface Autor { user_id: string; nome: string | null; avatar_url: string | null; xp_total: number; }
+
+async function getAutor(userId: string | null): Promise<Autor | null> {
+  if (!userId) return null;
+  const supabase = createServiceRoleClient();
+  const { data } = await supabase
+    .from("perfis")
+    .select("user_id, nome, avatar_url, xp_total")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return (data as Autor) ?? null;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -56,6 +70,7 @@ export default async function PromoPage({ params }: PageProps) {
 
   if (!promo) notFound();
 
+  const autor = await getAutor(promo.enviado_por ?? null);
   const nova = isNova(promo.criado_em);
 
   // Schema.org para SEO
@@ -173,6 +188,36 @@ export default async function PromoPage({ params }: PageProps) {
                 <Clock size={13} />
                 Expira em {tempoRelativo(promo.expira_em)}
               </div>
+            )}
+
+            {/* Autor da promo */}
+            {autor && (
+              <Link
+                href={`/usuario/${autor.user_id}`}
+                className="flex items-center gap-3 p-3 rounded-xl border border-white/5 bg-white/[0.03] hover:bg-white/[0.06] transition-all group"
+              >
+                {autor.avatar_url ? (
+                  <Image
+                    src={autor.avatar_url}
+                    alt={autor.nome ?? "Caçador"}
+                    width={36}
+                    height={36}
+                    className="rounded-full w-9 h-9 object-cover ring-1 ring-white/10"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="w-9 h-9 rounded-full bg-brand-600 flex items-center justify-center text-xs font-bold text-white">
+                    {(autor.nome ?? "CA").slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-gray-500">Postada por</p>
+                  <p className="text-sm font-semibold text-gray-200 group-hover:text-brand-400 transition-colors truncate">
+                    {autor.nome ?? "Caçador"}
+                  </p>
+                </div>
+                <NivelBadge xp={autor.xp_total} />
+              </Link>
             )}
 
             {/* Votação da comunidade */}

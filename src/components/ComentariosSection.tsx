@@ -2,16 +2,20 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Send, Loader2, MessageCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { LoginModal } from "./LoginModal";
+import { NivelBadge } from "./NivelBadge";
 
 interface Comentario {
   id: string;
+  user_id: string;
   user_nome: string;
   user_avatar: string | null;
   conteudo: string;
   criado_em: string;
+  xp: number;
 }
 
 function tempoRelativo(iso: string): string {
@@ -142,25 +146,33 @@ export function ComentariosSection({ promoId }: ComentariosSectionProps) {
         <div className="space-y-4">
           {comentarios.map((c) => (
             <div key={c.id} className="flex gap-3">
-              {/* Avatar */}
-              {c.user_avatar ? (
-                <Image
-                  src={c.user_avatar}
-                  alt={c.user_nome}
-                  width={32}
-                  height={32}
-                  className="rounded-full shrink-0 w-8 h-8 object-cover"
-                />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-brand-600/50 flex items-center justify-center text-xs font-bold text-brand-200 shrink-0">
-                  {c.user_nome.slice(0, 2).toUpperCase()}
-                </div>
-              )}
+              {/* Avatar (link pro perfil) */}
+              <Link href={`/usuario/${c.user_id}`} className="shrink-0">
+                {c.user_avatar ? (
+                  <Image
+                    src={c.user_avatar}
+                    alt={c.user_nome}
+                    width={32}
+                    height={32}
+                    className="rounded-full w-8 h-8 object-cover"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-brand-600/50 flex items-center justify-center text-xs font-bold text-brand-200">
+                    {c.user_nome.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+              </Link>
 
               {/* Conteúdo */}
               <div className="flex-1">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-xs font-semibold text-gray-300">{c.user_nome}</span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Link
+                    href={`/usuario/${c.user_id}`}
+                    className="text-xs font-semibold text-gray-300 hover:text-brand-400 transition-colors"
+                  >
+                    {c.user_nome}
+                  </Link>
+                  <NivelBadge xp={c.xp ?? 0} />
                   <span className="text-xs text-gray-600">{tempoRelativo(c.criado_em)}</span>
                 </div>
                 <p className="text-sm text-gray-300 mt-0.5 leading-relaxed">{c.conteudo}</p>

@@ -6,6 +6,7 @@ import type { Promo } from "@/types/promo";
 import { formatarPreco, formatarDesconto, tempoRelativo } from "@/lib/utils";
 import { labelTemperatura } from "@/lib/temperatura";
 import { Flame, ExternalLink, ShoppingBag, TrendingUp, Medal } from "lucide-react";
+import { RankingTabs } from "@/components/RankingTabs";
 
 async function getRanking(): Promise<Promo[]> {
   const supabase = createServiceRoleClient();
@@ -263,47 +264,51 @@ export default async function RankingPage() {
               <TrendingUp size={18} className="text-brand-400" />
             </h1>
             <p className="text-sm text-gray-500">
-              Ordenado por pontuação automática • Quanto maior, melhor o desconto
+              As melhores promos e os caçadores que mais contribuem
             </p>
           </div>
         </div>
 
-        {promos.length === 0 ? (
-          <div className="text-center py-20 text-gray-500">
-            <p className="text-lg">Nenhuma promo com pontuação ainda</p>
-            <p className="text-sm mt-1">As pontuações são calculadas automaticamente ao cadastrar uma promo com preço original.</p>
-          </div>
-        ) : (
-          <>
-            {/* Pódio — Top 3 */}
-            {top3.length > 0 && (
-              <div className="space-y-3">
-                <h2 className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-                  🏆 Pódio
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {top3.map((promo, i) => (
-                    <PodiumCard key={promo.id} promo={promo} posicao={i + 1} />
-                  ))}
-                </div>
+        <RankingTabs
+          promosSlot={
+            promos.length === 0 ? (
+              <div className="text-center py-20 text-gray-500">
+                <p className="text-lg">Nenhuma promo com pontuação ainda</p>
+                <p className="text-sm mt-1">As pontuações são calculadas automaticamente ao cadastrar uma promo com preço original.</p>
               </div>
-            )}
+            ) : (
+              <div className="space-y-8">
+                {/* Pódio — Top 3 */}
+                {top3.length > 0 && (
+                  <div className="space-y-3">
+                    <h2 className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                      🏆 Pódio
+                    </h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      {top3.map((promo, i) => (
+                        <PodiumCard key={promo.id} promo={promo} posicao={i + 1} />
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-            {/* Lista do restante */}
-            {resto.length > 0 && (
-              <div className="space-y-3">
-                <h2 className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-                  📋 Ranking completo
-                </h2>
-                <div className="flex flex-col gap-2">
-                  {resto.map((promo, i) => (
-                    <RankingItem key={promo.id} promo={promo} posicao={i + 4} />
-                  ))}
-                </div>
+                {/* Lista do restante */}
+                {resto.length > 0 && (
+                  <div className="space-y-3">
+                    <h2 className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                      📋 Ranking completo
+                    </h2>
+                    <div className="flex flex-col gap-2">
+                      {resto.map((promo, i) => (
+                        <RankingItem key={promo.id} promo={promo} posicao={i + 4} />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </>
-        )}
+            )
+          }
+        />
       </main>
 
       <footer className="border-t border-white/5 mt-16 py-8 text-center text-sm text-gray-600">
