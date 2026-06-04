@@ -29,6 +29,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: `${categoria.icone ?? ""} ${categoria.nome} — Melhores Promos`,
     description: `As melhores promoções de ${categoria.nome}. Atualizadas em tempo real.`,
+    alternates: { canonical: `/categoria/${slug}` },
   };
 }
 
