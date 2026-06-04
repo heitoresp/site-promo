@@ -45,6 +45,20 @@ async function getAutor(userId: string | null): Promise<Autor | null> {
   return (data as Autor) ?? null;
 }
 
+// Votos da promo — usados no aggregateRating do JSON-LD (só se houver votos)
+async function getVotos(promoId: string): Promise<{ quente: number; frio: number }> {
+  const supabase = createServiceRoleClient();
+  const { data } = await supabase.from("votos").select("tipo").eq("promo_id", promoId);
+  const c = { quente: 0, frio: 0 };
+  for (const v of data ?? []) {
+    if (v.tipo === "quente") c.quente++;
+    else if (v.tipo === "frio") c.frio++;
+  }
+  return c;
+}
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://apenaspromo.com.br";
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
   const promo = await getPromo(id);
@@ -58,9 +72,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `${promo.titulo} por apenas ${formatarPreco(promo.preco_promo)}${
         promo.desconto_pct ? ` (${formatarDesconto(promo.desconto_pct)} off)` : ""
       }`,
+    alternates: { canonical: `/promo/${id}` },
     openGraph: {
-      images: promo.imagem_url ? [{ url: promo.imagem_url }] : [],
+      title: `${promo.titulo} — ${formatarPreco(promo.preco_promo)}`,
       type: "website",
+      // imagem OG gerada por opengraph-image.tsx (card rico com preço/desconto)
     },
   };
 }
@@ -71,23 +87,62 @@ export default async function PromoPage({ params }: PageProps) {
 
   if (!promo) notFound();
 
-  const autor = await getAutor(promo.enviado_por ?? null);
+  const [autor, votos] = await Promise.all([
+    getAutor(promo.enviado_por ?? null),
+    getVotos(promo.id),
+  ]);
   const nova = isNova(promo.criado_em);
 
-  // Schema.org para SEO
-  const schema = {
+  // Validade da oferta = expiração, ou +30 dias por padrão
+  const priceValidUntil = (
+    promo.expira_em ? new Date(promo.expira_em) : new Date(Date.now() + 30 * 86400000)
+  ).toISOString().split("T")[0];
+
+  const totalVotos = votos.quente + votos.frio;
+
+  // Schema.org Product — rico, para o rich result do Google
+  const schema: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "Product",
     name: promo.titulo,
-    description: promo.descricao,
-    image: promo.imagem_url,
+    description:
+      promo.descricao ??
+      `${promo.titulo} por ${formatarPreco(promo.preco_promo)} na ${promo.loja}.`,
+    image: promo.imagem_url ? [promo.imagem_url] : undefined,
+    brand: { "@type": "Brand", name: promo.loja },
+    sku: promo.id,
     offers: {
       "@type": "Offer",
       price: promo.preco_promo,
       priceCurrency: "BRL",
+      priceValidUntil,
       availability: "https://schema.org/InStock",
-      url: promo.link_afiliado,
+      url: `${APP_URL}/promo/${promo.id}`,
+      seller: { "@type": "Organization", name: promo.loja },
     },
+  };
+
+  // aggregateRating só quando há votos reais (evita penalização do Google)
+  if (totalVotos > 0) {
+    const ratingValue = Math.round((votos.quente / totalVotos) * 4 + 1); // 1–5
+    schema.aggregateRating = {
+      "@type": "AggregateRating",
+      ratingValue,
+      bestRating: 5,
+      worstRating: 1,
+      ratingCount: totalVotos,
+    };
+  }
+
+  // Breadcrumb: Início › Categoria › Promo
+  const breadcrumb = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Início", item: APP_URL },
+      { "@type": "ListItem", position: 2, name: promo.categoria, item: `${APP_URL}/categoria/${promo.categoria}` },
+      { "@type": "ListItem", position: 3, name: promo.titulo, item: `${APP_URL}/promo/${promo.id}` },
+    ],
   };
 
   return (
@@ -97,6 +152,10 @@ export default async function PromoPage({ params }: PageProps) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }}
       />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 relative z-10">

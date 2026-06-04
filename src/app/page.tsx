@@ -6,6 +6,11 @@ import { PromoFeedRealtime } from "@/components/PromoFeedRealtime";
 import { PromoCardSkeleton } from "@/components/PromoCard";
 import type { Promo, Categoria } from "@/types/promo";
 import { Flame, Zap, TrendingUp } from "lucide-react";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 interface SearchParams {
   categoria?: string;
@@ -85,9 +90,27 @@ export default async function HomePage({
   const isHot = params.hot === "true";
   const temFiltro = params.categoria || params.loja || params.busca || isHot;
 
+  // JSON-LD: lista de ofertas (ajuda o Google a indexar o feed)
+  const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://apenaspromo.com.br";
+  const itemList = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    itemListElement: promos.slice(0, 20).map((p, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      url: `${APP_URL}/promo/${p.id}`,
+      name: p.titulo,
+    })),
+  };
+
   return (
     <div className="min-h-screen">
       <Header />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemList) }}
+      />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6 relative z-10">
 

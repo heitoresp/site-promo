@@ -7,6 +7,14 @@ import { formatarPreco, formatarDesconto, tempoRelativo } from "@/lib/utils";
 import { labelTemperatura } from "@/lib/temperatura";
 import { Flame, ExternalLink, ShoppingBag, TrendingUp, Medal } from "lucide-react";
 import { RankingTabs } from "@/components/RankingTabs";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Ranking de Promos & Top Caçadores",
+  description:
+    "As promoções mais quentes do momento e os usuários que mais contribuem no ApenasPromo.",
+  alternates: { canonical: "/ranking" },
+};
 
 async function getRanking(): Promise<Promo[]> {
   const supabase = createServiceRoleClient();
