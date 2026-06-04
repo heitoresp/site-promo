@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { LogOut, User } from "lucide-react";
+import { LogOut, User, Heart } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { LoginModal } from "./LoginModal";
 
@@ -76,6 +76,14 @@ export function UserMenu() {
             >
               <User size={13} />
               Meu perfil
+            </Link>
+            <Link
+              href="/salvos"
+              onClick={() => setShowMenu(false)}
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-400 hover:text-red-400 hover:bg-red-500/5 transition-colors"
+            >
+              <Heart size={13} />
+              Promos salvas
             </Link>
             <button
               onClick={() => { signOut(); setShowMenu(false); }}
