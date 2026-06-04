@@ -13,6 +13,7 @@ import {
 } from "@/lib/utils";
 import { labelTemperatura } from "@/lib/temperatura";
 import { VotoBar } from "./VotoBar";
+import { FavoritarButton } from "./FavoritarButton";
 
 interface PromoCardProps {
   promo: Promo;
@@ -100,6 +101,11 @@ export function PromoCard({ promo }: PromoCardProps) {
             </span>
           </div>
         )}
+
+        {/* Botão de salvar (favoritar) */}
+        <div className={`absolute right-2 ${promo.desconto_pct && promo.desconto_pct > 0 ? "top-11" : "top-2"}`}>
+          <FavoritarButton promoId={promo.id} />
+        </div>
 
         {/* Badge da loja */}
         <div className="absolute bottom-2 left-2">

@@ -15,6 +15,7 @@ import { ComentariosSection } from "@/components/ComentariosSection";
 import { VotoBar } from "@/components/VotoBar";
 import { PriceHistory } from "@/components/PriceHistory";
 import { NivelBadge } from "@/components/NivelBadge";
+import { FavoritarButton } from "@/components/FavoritarButton";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -243,9 +244,12 @@ export default async function PromoPage({ params }: PageProps) {
             <div className="flex flex-col gap-3 mt-auto">
               <PegarPromoButton promoId={promo.id} link={promo.link_afiliado} />
 
-              <ShareButton
-                href={urlWhatsApp(promo.titulo, `${process.env.NEXT_PUBLIC_APP_URL}/promo/${promo.id}`)}
-              />
+              <div className="grid grid-cols-2 gap-3">
+                <FavoritarButton promoId={promo.id} variant="inline" />
+                <ShareButton
+                  href={urlWhatsApp(promo.titulo, `${process.env.NEXT_PUBLIC_APP_URL}/promo/${promo.id}`)}
+                />
+              </div>
             </div>
           </div>
         </div>
