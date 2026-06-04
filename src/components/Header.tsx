@@ -6,6 +6,7 @@ import { useState, useTransition, Suspense } from "react";
 import { Search, TrendingUp, PlusCircle } from "lucide-react";
 import Image from "next/image";
 import { UserMenu } from "./UserMenu";
+import { Sino } from "./Sino";
 
 const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME ?? "ApenasPromo";
 
@@ -107,6 +108,9 @@ export function Header() {
             Admin
           </Link>
         </nav>
+
+        {/* Notificações */}
+        <Sino />
 
         {/* Usuário */}
         <UserMenu />
