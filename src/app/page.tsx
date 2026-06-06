@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { Header } from "@/components/Header";
 import { CategoriaNav } from "@/components/CategoriaNav";
+import { FiltrosFeed } from "@/components/FiltrosFeed";
 import { PromoFeedRealtime } from "@/components/PromoFeedRealtime";
 import { PromoCardSkeleton } from "@/components/PromoCard";
 import type { Promo, Categoria } from "@/types/promo";
@@ -18,6 +19,27 @@ interface SearchParams {
   busca?: string;
   hot?: string;
   pagina?: string;
+  ordem?: string;   // recentes | quentes | desconto | preco_asc | preco_desc
+  pmin?: string;    // preço mínimo
+  pmax?: string;    // preço máximo
+}
+
+// Aplica a ordenação escolhida na query (default: mais recentes)
+function aplicarOrdem<T>(query: T, ordem?: string): T {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const q = query as any;
+  switch (ordem) {
+    case "quentes":
+      return q.order("temperatura", { ascending: false, nullsFirst: false });
+    case "desconto":
+      return q.order("desconto_pct", { ascending: false, nullsFirst: false });
+    case "preco_asc":
+      return q.order("preco_promo", { ascending: true });
+    case "preco_desc":
+      return q.order("preco_promo", { ascending: false });
+    default: // recentes
+      return q.order("criado_em", { ascending: false });
+  }
 }
 
 async function getPromos(params: SearchParams): Promise<Promo[]> {
@@ -27,16 +49,25 @@ async function getPromos(params: SearchParams): Promise<Promo[]> {
     .from("promos")
     .select("*")
     .eq("ativo", true)
-    .or("expira_em.is.null,expira_em.gt." + new Date().toISOString())
-    .order("criado_em", { ascending: false })
-    .limit(40);
+    .or("expira_em.is.null,expira_em.gt." + new Date().toISOString());
 
   if (params.categoria) query = query.eq("categoria", params.categoria);
   if (params.loja)      query = query.eq("loja", params.loja);
   if (params.busca)     query = query.ilike("titulo", `%${params.busca}%`);
-  if (params.hot === "true") query = query.gt("cliques", 20).order("cliques", { ascending: false });
+  if (params.hot === "true") query = query.gt("cliques", 20);
 
-  const { data } = await query;
+  // Faixa de preço
+  const pmin = parseFloat(params.pmin ?? "");
+  const pmax = parseFloat(params.pmax ?? "");
+  if (Number.isFinite(pmin)) query = query.gte("preco_promo", pmin);
+  if (Number.isFinite(pmax)) query = query.lte("preco_promo", pmax);
+
+  // Ordenação (hot ainda prioriza cliques)
+  query = params.hot === "true"
+    ? query.order("cliques", { ascending: false })
+    : aplicarOrdem(query, params.ordem);
+
+  const { data } = await query.limit(40);
   return (data ?? []) as Promo[];
 }
 
@@ -177,6 +208,11 @@ export default async function HomePage({
         {/* Navegação por categoria */}
         <Suspense fallback={<div className="h-9 shimmer rounded-xl" />}>
           <CategoriaNav categorias={categorias} />
+        </Suspense>
+
+        {/* Filtros: ordenação + faixa de preço */}
+        <Suspense fallback={<div className="h-9 shimmer rounded-xl w-64" />}>
+          <FiltrosFeed />
         </Suspense>
 
         {/* Grid de promos */}
