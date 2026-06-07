@@ -154,6 +154,7 @@ export function AdminDashboard({ user, promos: promosIniciais, pendentes: penden
       loja:           promo.loja ?? "",
       categoria:      promo.categoria ?? "",
       link_afiliado:  promo.link_afiliado ?? "",
+      expira_em:      promo.expira_em ?? undefined,
     });
     setEditErro("");
     setEditModal(true);
@@ -662,12 +663,22 @@ export function AdminDashboard({ user, promos: promosIniciais, pendentes: penden
                   </select>
                 </div>
               </div>
-              {/* Cupom */}
-              <div>
-                <label className="text-xs font-medium text-gray-400 block mb-1">Cupom</label>
-                <input value={editForm.cupom ?? ""}
-                  onChange={e => setEditForm(p => ({ ...p, cupom: e.target.value }))}
-                  className="search-input w-full font-mono uppercase" placeholder="PROMO10" />
+              {/* Cupom + Expiração */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-gray-400 block mb-1">Cupom</label>
+                  <input value={editForm.cupom ?? ""}
+                    onChange={e => setEditForm(p => ({ ...p, cupom: e.target.value }))}
+                    className="search-input w-full font-mono uppercase" placeholder="PROMO10" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-400 block mb-1">Expira em</label>
+                  <input
+                    type="datetime-local"
+                    value={editForm.expira_em ? editForm.expira_em.slice(0, 16) : ""}
+                    onChange={e => setEditForm(p => ({ ...p, expira_em: e.target.value ? new Date(e.target.value).toISOString() : undefined }))}
+                    className="search-input w-full text-sm" />
+                </div>
               </div>
               {/* Descrição */}
               <div>
