@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
     imagem_url,
     loja: lojaManual,
     categoria: categoriaManual,
+    expira_em,
   } = body;
 
   if (!link || !titulo || !preco_promo) {
@@ -59,6 +60,7 @@ export async function POST(req: NextRequest) {
       categoria,
       cupom:         cupom?.trim() || null,
       imagem_url:    imagem_url || null,
+      expira_em:     expira_em || null,
       origem:        "manual",
       temperatura,
       status:        "pendente",   // Aguarda aprovação do admin

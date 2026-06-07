@@ -25,7 +25,7 @@ export async function PATCH(
 
   const {
     titulo, descricao, preco_promo, preco_original,
-    cupom, imagem_url, loja, categoria, link_afiliado,
+    cupom, imagem_url, loja, categoria, link_afiliado, expira_em,
   } = body;
 
   const update: Record<string, unknown> = {};
@@ -38,6 +38,7 @@ export async function PATCH(
   if (loja         !== undefined) update.loja          = loja || null;
   if (categoria    !== undefined) update.categoria     = categoria || null;
   if (link_afiliado !== undefined) update.link_afiliado = link_afiliado || null;
+  if (expira_em    !== undefined) update.expira_em     = expira_em || null;
 
   if (Object.keys(update).length === 0) {
     return NextResponse.json({ error: "Nenhum campo para atualizar" }, { status: 400 });

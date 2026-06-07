@@ -35,6 +35,7 @@ export default function SubmeterPage() {
   const [imagemUrl,    setImagemUrl]    = useState("");
   const [loja,         setLoja]         = useState("");
   const [categoria,    setCategoria]    = useState("eletronicos");
+  const [expiraDias,   setExpiraDias]   = useState(""); // "" = sem prazo
 
   // Estado
   const [fetchingMeta, setFetchingMeta] = useState(false);
@@ -100,6 +101,9 @@ export default function SubmeterPage() {
           imagem_url:     imagemUrl || undefined,
           loja:           loja || undefined,
           categoria,
+          expira_em:      expiraDias
+            ? new Date(Date.now() + Number(expiraDias) * 86400000).toISOString()
+            : undefined,
         }),
       });
 
@@ -369,6 +373,24 @@ export default function SubmeterPage() {
                 </select>
                 <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
               </div>
+            </div>
+
+            {/* Validade da promo (opcional) */}
+            <div className="relative">
+              <p className="text-xs text-gray-500 mb-1">Validade (opcional)</p>
+              <select
+                value={expiraDias}
+                onChange={e => setExpiraDias(e.target.value)}
+                className="search-input w-full appearance-none pr-8"
+              >
+                <option value="">Sem prazo definido</option>
+                <option value="1">Expira em 1 dia</option>
+                <option value="3">Expira em 3 dias</option>
+                <option value="7">Expira em 7 dias</option>
+                <option value="15">Expira em 15 dias</option>
+                <option value="30">Expira em 30 dias</option>
+              </select>
+              <ChevronDown size={14} className="absolute right-3 bottom-3 text-gray-500 pointer-events-none" />
             </div>
           </div>
 
