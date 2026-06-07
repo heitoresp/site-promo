@@ -8,6 +8,7 @@ import { PromoCardSkeleton } from "@/components/PromoCard";
 import { Footer } from "@/components/Footer";
 import type { Promo, Categoria } from "@/types/promo";
 import { Flame, Zap, TrendingUp } from "lucide-react";
+import { CAMPOS_CARD } from "@/lib/promo-campos";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -48,7 +49,7 @@ async function getPromos(params: SearchParams): Promise<Promo[]> {
 
   let query = supabase
     .from("promos")
-    .select("*")
+    .select(CAMPOS_CARD)
     .eq("ativo", true)
     .or("expira_em.is.null,expira_em.gt." + new Date().toISOString());
 

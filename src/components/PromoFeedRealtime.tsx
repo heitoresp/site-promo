@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PromoCard } from "./PromoCard";
+import { EngajamentoProvider } from "./EngajamentoProvider";
 import type { Promo } from "@/types/promo";
 import { Sparkles } from "lucide-react";
 
@@ -66,12 +67,14 @@ export function PromoFeedRealtime({ promosIniciais, categoria }: PromoFeedRealti
         </div>
       )}
 
-      {/* Grid de promos */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {promos.map((promo) => (
-          <PromoCard key={promo.id} promo={promo} />
-        ))}
-      </div>
+      {/* Grid de promos — Provider faz 1 fetch de engajamento em lote */}
+      <EngajamentoProvider>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {promos.map((promo) => (
+            <PromoCard key={promo.id} promo={promo} />
+          ))}
+        </div>
+      </EngajamentoProvider>
 
       {promos.length === 0 && (
         <div className="text-center py-24 text-gray-500">

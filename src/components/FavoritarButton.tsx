@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Heart } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { LoginModal } from "./LoginModal";
+import { useEngajamento } from "./EngajamentoProvider";
 
 interface FavoritarButtonProps {
   promoId: string;
@@ -16,13 +17,21 @@ export function FavoritarButton({ promoId, variant = "overlay" }: FavoritarButto
   const [loading, setLoading] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
 
+  const eng = useEngajamento(promoId);
+
   useEffect(() => {
     if (!user) { setFavoritado(false); return; }
+    // Dentro do feed: usa o lote do provider
+    if (eng.temProvider) {
+      if (eng.data) setFavoritado(eng.data.favoritado);
+      return;
+    }
+    // Página isolada: fetch próprio
     fetch(`/api/promos/${promoId}/favoritar`)
       .then((r) => r.json())
       .then((d) => setFavoritado(!!d.favoritado))
       .catch(() => {});
-  }, [promoId, user]);
+  }, [promoId, user, eng.temProvider, eng.data]);
 
   async function toggle(e: React.MouseEvent) {
     e.preventDefault();

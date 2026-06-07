@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { Header } from "@/components/Header";
 import { PromoFeedRealtime } from "@/components/PromoFeedRealtime";
+import { CAMPOS_CARD } from "@/lib/promo-campos";
 import type { Loja, Promo } from "@/types/promo";
 
 interface PageProps {
@@ -39,7 +40,7 @@ export default async function LojaPage({ params }: PageProps) {
     getLoja(slug),
     supabase
       .from("promos")
-      .select("*")
+      .select(CAMPOS_CARD)
       .eq("ativo", true)
       .eq("loja", slug)
       .or("expira_em.is.null,expira_em.gt." + new Date().toISOString())
