@@ -2,9 +2,12 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   typescript: {
-    ignoreBuildErrors: true,
+    // Erros de tipo agora QUEBRAM o build (deploy não sobe bug silencioso).
+    ignoreBuildErrors: false,
   },
   eslint: {
+    // ESLint segue fora do build (evita travar deploy por regra de estilo);
+    // rodar `npm run lint` no CI quando quiser endurecer.
     ignoreDuringBuilds: true,
   },
   images: {
