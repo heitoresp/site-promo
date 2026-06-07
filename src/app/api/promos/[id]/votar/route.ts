@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
+import { rateLimit, idDoCliente } from "@/lib/rate-limit";
 
 type Tipo = "quente" | "frio";
 const TIPOS_VALIDOS: Tipo[] = ["quente", "frio"];
@@ -41,6 +42,10 @@ export async function POST(
   if (!user) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
+
+  // Rate limit: máx 20 votos por minuto por usuário
+  const limite = rateLimit(`votar:${idDoCliente(req, user.id)}`, 20, 60_000);
+  if (limite) return limite;
 
   // Valida body
   const body = await req.json().catch(() => ({}));

@@ -3,6 +3,7 @@ import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { transformarLinkAfiliado, nomeDaLoja } from "@/lib/afiliados";
 import { calcularTemperatura } from "@/lib/temperatura";
 import { detectarCategoria } from "@/lib/categoria";
+import { rateLimit, idDoCliente } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   // Verifica autenticação
@@ -11,6 +12,10 @@ export async function POST(req: NextRequest) {
   if (!user) {
     return NextResponse.json({ error: "Faça login para enviar uma promo" }, { status: 401 });
   }
+
+  // Rate limit: máx 10 submissões por hora por usuário
+  const limite = rateLimit(`submeter:${idDoCliente(req, user.id)}`, 10, 3_600_000);
+  if (limite) return limite;
 
   const body = await req.json().catch(() => null);
   if (!body) {
