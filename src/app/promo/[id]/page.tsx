@@ -211,7 +211,7 @@ export default async function PromoPage({ params }: PageProps) {
             </div>
 
             {/* Título */}
-            <h1 className="text-xl sm:text-2xl font-bold text-white leading-snug">
+            <h1 className="font-display text-xl sm:text-2xl font-bold text-white leading-snug">
               {promo.titulo}
             </h1>
 
