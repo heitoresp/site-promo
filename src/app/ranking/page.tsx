@@ -7,6 +7,7 @@ import { formatarPreco, formatarDesconto, tempoRelativo } from "@/lib/utils";
 import { labelTemperatura } from "@/lib/temperatura";
 import { Flame, ExternalLink, ShoppingBag, TrendingUp, Medal } from "lucide-react";
 import { RankingTabs } from "@/components/RankingTabs";
+import { Footer } from "@/components/Footer";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -267,7 +268,7 @@ export default async function RankingPage() {
             <Medal size={20} className="text-yellow-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-extrabold text-white flex items-center gap-2">
+            <h1 className="font-display text-2xl font-extrabold text-white flex items-center gap-2">
               Ranking de Promos
               <TrendingUp size={18} className="text-brand-400" />
             </h1>
@@ -319,19 +320,7 @@ export default async function RankingPage() {
         />
       </main>
 
-      <footer className="border-t border-white/5 mt-16 py-8 text-center text-sm text-gray-600">
-        <p>
-          Feito com 🔥 •{" "}
-          <a
-            href="https://wa.me"
-            className="hover:text-brand-400 transition-colors"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Receba promos no WhatsApp
-          </a>
-        </p>
-      </footer>
+      <Footer />
     </div>
   );
 }

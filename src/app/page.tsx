@@ -5,6 +5,7 @@ import { CategoriaNav } from "@/components/CategoriaNav";
 import { FiltrosFeed } from "@/components/FiltrosFeed";
 import { PromoFeedRealtime } from "@/components/PromoFeedRealtime";
 import { PromoCardSkeleton } from "@/components/PromoCard";
+import { Footer } from "@/components/Footer";
 import type { Promo, Categoria } from "@/types/promo";
 import { Flame, Zap, TrendingUp } from "lucide-react";
 import type { Metadata } from "next";
@@ -155,7 +156,7 @@ export default async function HomePage({
 
             <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
+                <h1 className="font-display text-2xl sm:text-3xl font-extrabold text-white">
                   🔥 Promos do{" "}
                   <span className="bg-gradient-to-r from-brand-400 to-brand-600 bg-clip-text text-transparent">
                     Momento
@@ -222,20 +223,7 @@ export default async function HomePage({
 
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-white/5 mt-16 py-8 text-center text-sm text-gray-600">
-        <p>
-          Feito com 🔥 •{" "}
-          <a
-            href="https://wa.me"
-            className="hover:text-brand-400 transition-colors"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Receba promos no WhatsApp
-          </a>
-        </p>
-      </footer>
+      <Footer />
     </div>
   );
 }

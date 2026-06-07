@@ -3,14 +3,20 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { LogOut, User, Heart, Bell } from "lucide-react";
+import { LogOut, User, Heart, Bell, Shield } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { LoginModal } from "./LoginModal";
+
+// E-mails de admin (público — apenas pra exibir o atalho; a rota é protegida no middleware)
+const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS ?? "")
+  .split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
 
 export function UserMenu() {
   const { user, loading, signOut } = useAuth();
   const [showLogin, setShowLogin]   = useState(false);
   const [showMenu, setShowMenu]     = useState(false);
+
+  const isAdmin = !!user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
 
   if (loading) {
     return <div className="w-8 h-8 rounded-full bg-white/5 animate-pulse" />;
@@ -93,6 +99,16 @@ export function UserMenu() {
               <Bell size={13} />
               Meus alertas
             </Link>
+            {isAdmin && (
+              <Link
+                href="/admin"
+                onClick={() => setShowMenu(false)}
+                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors border-t border-white/5"
+              >
+                <Shield size={13} />
+                Painel admin
+              </Link>
+            )}
             <button
               onClick={() => { signOut(); setShowMenu(false); }}
               className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-400 hover:text-red-400 hover:bg-red-500/5 transition-colors border-t border-white/5"

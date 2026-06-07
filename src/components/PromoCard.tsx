@@ -12,6 +12,7 @@ import {
   formatarPreco, formatarDesconto, tempoRelativo, isNova, isExpirando, urlWhatsApp
 } from "@/lib/utils";
 import { labelTemperatura } from "@/lib/temperatura";
+import { corDaLoja } from "@/lib/lojas";
 import { VotoBar } from "./VotoBar";
 import { FavoritarButton } from "./FavoritarButton";
 
@@ -51,6 +52,7 @@ export function PromoCard({ promo }: PromoCardProps) {
   }
 
   const imagemFallback = `https://placehold.co/400x300/16161f/f97316?text=${encodeURIComponent(promo.loja)}`;
+  const corLoja = corDaLoja(promo.loja);
 
   return (
     <article className="promo-card group animate-fade-in">
@@ -107,11 +109,18 @@ export function PromoCard({ promo }: PromoCardProps) {
           <FavoritarButton promoId={promo.id} />
         </div>
 
-        {/* Badge da loja */}
+        {/* Badge da loja (colorido com a cor da marca, quando conhecida) */}
         <div className="absolute bottom-2 left-2">
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-black/70 text-gray-300 backdrop-blur-sm border border-white/10">
-            <ShoppingBag size={10} />
-            {promo.loja}
+          <span
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs backdrop-blur-sm border font-medium"
+            style={
+              corLoja
+                ? { backgroundColor: `${corLoja}26`, borderColor: `${corLoja}66`, color: "#fff" }
+                : undefined
+            }
+          >
+            <ShoppingBag size={10} style={corLoja ? { color: corLoja } : undefined} />
+            <span className={corLoja ? "" : "text-gray-300"}>{promo.loja}</span>
           </span>
         </div>
       </div>
