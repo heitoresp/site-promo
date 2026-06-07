@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { rateLimit, idDoCliente } from "@/lib/rate-limit";
 
 const LIMITE_DENUNCIAS = 5;
 
@@ -17,6 +18,10 @@ export async function POST(
   if (!user) {
     return NextResponse.json({ erro: "Você precisa estar logado para denunciar." }, { status: 401 });
   }
+
+  // Rate limit: máx 10 denúncias por minuto por usuário
+  const limite = rateLimit(`report:${idDoCliente(_req, user.id)}`, 10, 60_000);
+  if (limite) return limite;
 
   const supabase = createServiceRoleClient();
 

@@ -84,12 +84,10 @@ export function AdminDashboard({ user, promos: promosIniciais, pendentes: penden
     setSucesso("");
 
     try {
-      const res = await fetch("/api/promos", {
+      // Rota autenticada por sessão de admin (sem token exposto no client)
+      const res = await fetch("/api/admin/promos/criar", {
         method:  "POST",
-        headers: {
-          "Content-Type":  "application/json",
-          "Authorization": `Bearer ${process.env.NEXT_PUBLIC_API_SECRET ?? ""}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...form, origem: "manual" }),
       });
 

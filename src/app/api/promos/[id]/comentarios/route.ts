@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { rateLimit, idDoCliente } from "@/lib/rate-limit";
 
 // GET /api/promos/[id]/comentarios — lista comentários ativos
 export async function GET(
@@ -53,6 +54,10 @@ export async function POST(
   if (!user) {
     return NextResponse.json({ erro: "Você precisa estar logado para comentar." }, { status: 401 });
   }
+
+  // Rate limit: máx 5 comentários por minuto por usuário
+  const limite = rateLimit(`comentar:${idDoCliente(req, user.id)}`, 5, 60_000);
+  if (limite) return limite;
 
   const { conteudo } = await req.json();
 
