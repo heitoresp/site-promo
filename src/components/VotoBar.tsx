@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { LoginModal } from "./LoginModal";
+import { useEngajamento } from "./EngajamentoProvider";
 
 type Tipo = "quente" | "frio";
 
@@ -27,7 +28,20 @@ export function VotoBar({ promoId, compact = false, onTemperatura }: VotoBarProp
   const [carregando, setCarregando] = useState<Tipo | null>(null);
   const [loaded, setLoaded] = useState(false);
 
+  // Engajamento em lote (feed) — evita 1 fetch por card
+  const eng = useEngajamento(promoId);
+
   useEffect(() => {
+    // Dentro do feed: usa o lote do provider (sem fetch individual)
+    if (eng.temProvider) {
+      if (eng.data) {
+        setContagens({ quente: eng.data.quente, frio: eng.data.frio });
+        setMeuVoto(eng.data.meuVoto);
+        setLoaded(true);
+      }
+      return;
+    }
+    // Página isolada: faz o próprio fetch
     fetch(`/api/promos/${promoId}/votar`)
       .then((r) => r.json())
       .then((data) => {
@@ -38,7 +52,7 @@ export function VotoBar({ promoId, compact = false, onTemperatura }: VotoBarProp
       })
       .catch(() => setLoaded(true));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [promoId]);
+  }, [promoId, eng.temProvider, eng.data]);
 
   async function handleVoto(tipo: Tipo) {
     if (!user) {

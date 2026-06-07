@@ -5,6 +5,7 @@ import { Header } from "@/components/Header";
 import { PromoFeedRealtime } from "@/components/PromoFeedRealtime";
 import { CategoriaNav } from "@/components/CategoriaNav";
 import { Suspense } from "react";
+import { CAMPOS_CARD } from "@/lib/promo-campos";
 import type { Categoria, Promo } from "@/types/promo";
 
 interface PageProps {
@@ -41,7 +42,7 @@ export default async function CategoriaPage({ params }: PageProps) {
     getCategoria(slug),
     supabase
       .from("promos")
-      .select("*")
+      .select(CAMPOS_CARD)
       .eq("ativo", true)
       .eq("categoria", slug)
       .or("expira_em.is.null,expira_em.gt." + new Date().toISOString())
