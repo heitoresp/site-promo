@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
+import { transformarLinkAfiliado } from "@/lib/afiliados";
 
 function isAdmin(email: string | undefined): boolean {
   if (!email) return false;
@@ -37,7 +38,10 @@ export async function PATCH(
   if (imagem_url   !== undefined) update.imagem_url    = imagem_url || null;
   if (loja         !== undefined) update.loja          = loja || null;
   if (categoria    !== undefined) update.categoria     = categoria || null;
-  if (link_afiliado !== undefined) update.link_afiliado = link_afiliado || null;
+  if (link_afiliado !== undefined) {
+    // Re-transforma em link de afiliado ao editar (idempotente: se já tem a tag, mantém)
+    update.link_afiliado = link_afiliado ? await transformarLinkAfiliado(link_afiliado) : null;
+  }
   if (expira_em    !== undefined) update.expira_em     = expira_em || null;
 
   if (Object.keys(update).length === 0) {
