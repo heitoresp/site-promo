@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { transformarLinkAfiliado } from "@/lib/afiliados";
 
 // ============================================================
 // PATCH /api/promos/[id]/click
@@ -35,5 +36,10 @@ export async function PATCH(
   // Incrementa cliques de forma atômica via RPC
   await supabase.rpc("incrementar_cliques", { promo_id: id });
 
-  return NextResponse.json({ link: promo.link_afiliado }, { status: 200 });
+  // Garante a tag de afiliado no momento do clique — cobre promos antigas
+  // (salvas antes de configurar a tag), do bot ou importadas. Idempotente:
+  // se o link já tem a tag, não duplica.
+  const link = await transformarLinkAfiliado(promo.link_afiliado);
+
+  return NextResponse.json({ link }, { status: 200 });
 }
