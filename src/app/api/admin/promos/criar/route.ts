@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { detectarCategoria } from "@/lib/categoria";
 import { calcularTemperatura } from "@/lib/temperatura";
+import { transformarLinkAfiliado } from "@/lib/afiliados";
 
 function isAdmin(email: string | undefined): boolean {
   if (!email) return false;
@@ -34,6 +35,9 @@ export async function POST(req: NextRequest) {
     body.titulo, Number(body.preco_promo), body.preco_original ?? null
   );
 
+  // Transforma o link em link de afiliado (igual ao fluxo de submissão)
+  const linkAfiliado = await transformarLinkAfiliado(body.link_afiliado);
+
   const { data, error } = await createServiceRoleClient()
     .from("promos")
     .insert({
@@ -41,7 +45,7 @@ export async function POST(req: NextRequest) {
       descricao:      body.descricao?.trim().slice(0, 1000) ?? null,
       preco_original: body.preco_original ? Number(body.preco_original) : null,
       preco_promo:    Number(body.preco_promo),
-      link_afiliado:  body.link_afiliado,
+      link_afiliado:  linkAfiliado,
       loja:           body.loja ?? "outros",
       categoria:      body.categoria ?? detectarCategoria(body.titulo, body.descricao),
       cupom:          body.cupom?.trim() || null,

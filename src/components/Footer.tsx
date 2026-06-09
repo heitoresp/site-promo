@@ -85,6 +85,13 @@ export function Footer() {
           <p>© {new Date().getFullYear()} {APP_NAME}. Feito com 🔥 no Brasil.</p>
           <p>Os preços podem mudar a qualquer momento. Confira sempre na loja.</p>
         </div>
+
+        {/* Divulgação de afiliado — exigida pelos programas (Amazon Associates etc.) */}
+        <p className="text-[11px] text-gray-700 mt-4 leading-relaxed text-center sm:text-left">
+          {APP_NAME} participa de programas de afiliados (Amazon Associates e outros).
+          Como afiliado, podemos ganhar comissão por compras qualificadas feitas pelos
+          links do site — sem custo adicional para você.
+        </p>
       </div>
     </footer>
   );
