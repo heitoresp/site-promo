@@ -1,14 +1,18 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { Header } from "@/components/Header";
 import { CategoriaNav } from "@/components/CategoriaNav";
 import { FiltrosFeed } from "@/components/FiltrosFeed";
 import { PromoFeedRealtime } from "@/components/PromoFeedRealtime";
 import { PromoCardSkeleton } from "@/components/PromoCard";
+import { PromoImage } from "@/components/PromoImage";
 import { Footer } from "@/components/Footer";
 import type { Promo, Categoria } from "@/types/promo";
-import { Flame, Zap, TrendingUp } from "lucide-react";
+import { Flame, Zap, TrendingUp, Medal, Bell } from "lucide-react";
 import { CAMPOS_CARD } from "@/lib/promo-campos";
+import { formatarPreco, formatarDesconto } from "@/lib/utils";
+import { labelTemperatura } from "@/lib/temperatura";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -73,6 +77,21 @@ async function getPromos(params: SearchParams): Promise<Promo[]> {
   return (data ?? []) as Promo[];
 }
 
+// Promo em destaque no hero: a mais quente do momento (temperatura + cliques)
+async function getPromoDestaque(): Promise<Promo | null> {
+  const supabase = createServiceRoleClient();
+  const { data } = await supabase
+    .from("promos")
+    .select(CAMPOS_CARD)
+    .eq("ativo", true)
+    .or("expira_em.is.null,expira_em.gt." + new Date().toISOString())
+    .not("temperatura", "is", null)
+    .order("temperatura", { ascending: false })
+    .order("cliques", { ascending: false })
+    .limit(1);
+  return ((data ?? [])[0] as Promo) ?? null;
+}
+
 async function getCategorias(): Promise<Categoria[]> {
   const supabase = createServiceRoleClient();
   const { data } = await supabase
@@ -114,14 +133,21 @@ export default async function HomePage({
   searchParams: Promise<SearchParams>;
 }) {
   const params = await searchParams;
-  const [promos, categorias, stats] = await Promise.all([
+  const isHot = params.hot === "true";
+  const temFiltro = params.categoria || params.loja || params.busca || isHot;
+  // Home "limpa" (sem filtro/ordenação): mostra o hero com a promo destaque
+  const home = !temFiltro && !params.ordem && !params.pmin && !params.pmax;
+
+  const [promos, categorias, stats, destaque] = await Promise.all([
     getPromos(params),
     getCategorias(),
     getStats(),
+    home ? getPromoDestaque() : Promise.resolve(null),
   ]);
 
-  const isHot = params.hot === "true";
-  const temFiltro = params.categoria || params.loja || params.busca || isHot;
+  // O destaque já aparece grande no hero — tira do grid pra não duplicar
+  const promosGrid = destaque ? promos.filter((p) => p.id !== destaque.id) : promos;
+  const tempDestaque = destaque ? labelTemperatura(destaque.temperatura ?? null) : null;
 
   // JSON-LD: lista de ofertas (ajuda o Google a indexar o feed)
   const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://apenaspromo.com.br";
@@ -155,7 +181,8 @@ export default async function HomePage({
             <div className="absolute -top-20 -right-20 w-64 h-64 bg-brand-500/10 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
 
-            <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className={`relative grid grid-cols-1 gap-6 items-center ${destaque ? "lg:grid-cols-[1fr,340px]" : ""}`}>
+              {/* Coluna texto + stats */}
               <div>
                 <h1 className="font-display text-2xl sm:text-3xl font-extrabold text-white">
                   🔥 Promos do{" "}
@@ -166,24 +193,93 @@ export default async function HomePage({
                 <p className="text-gray-400 mt-1 text-sm">
                   Atualizadas em tempo real • Sem frescura, só desconto
                 </p>
+
+                {/* Stats */}
+                <div className="flex gap-4 mt-5">
+                  <div>
+                    <p className="text-xl font-extrabold text-brand-400">{stats.totalPromos}</p>
+                    <p className="text-xs text-gray-500 flex items-center gap-1">
+                      <TrendingUp size={11} /> Ativas
+                    </p>
+                  </div>
+                  <div className="w-px bg-white/10" />
+                  <div>
+                    <p className="text-xl font-extrabold text-green-400">{stats.promasHoje}</p>
+                    <p className="text-xs text-gray-500 flex items-center gap-1">
+                      <Zap size={11} /> Hoje
+                    </p>
+                  </div>
+                </div>
+
+                {/* Atalhos */}
+                <div className="flex flex-wrap gap-2 mt-5">
+                  <Link
+                    href="/ranking"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-yellow-500/10 border border-yellow-500/25 text-yellow-400 hover:bg-yellow-500/20 transition-all"
+                  >
+                    <Medal size={12} /> Ranking
+                  </Link>
+                  <Link
+                    href="/alertas"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-brand-500/10 border border-brand-500/25 text-brand-400 hover:bg-brand-500/20 transition-all"
+                  >
+                    <Bell size={12} /> Criar alerta
+                  </Link>
+                </div>
               </div>
 
-              {/* Stats */}
-              <div className="flex gap-4">
-                <div className="text-center">
-                  <p className="text-xl font-extrabold text-brand-400">{stats.totalPromos}</p>
-                  <p className="text-xs text-gray-500 flex items-center gap-1">
-                    <TrendingUp size={11} /> Ativas
-                  </p>
-                </div>
-                <div className="w-px bg-white/5" />
-                <div className="text-center">
-                  <p className="text-xl font-extrabold text-green-400">{stats.promasHoje}</p>
-                  <p className="text-xs text-gray-500 flex items-center gap-1">
-                    <Zap size={11} /> Hoje
-                  </p>
-                </div>
-              </div>
+              {/* Promo mais quente do momento */}
+              {destaque && (
+                <Link
+                  href={`/promo/${destaque.id}`}
+                  className="group relative block rounded-2xl overflow-hidden border border-brand-500/25 bg-black/30 hover:border-brand-500/60 hover:shadow-glow-orange transition-all"
+                >
+                  <div className="relative aspect-[16/9] lg:aspect-[4/3]">
+                    <PromoImage
+                      src={destaque.imagem_url}
+                      alt={destaque.titulo}
+                      loja={destaque.loja}
+                      sizes="(max-width: 1024px) 100vw, 340px"
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/25 to-transparent" />
+
+                    {/* Selo destaque */}
+                    <span className="absolute top-3 left-3 badge-hot animate-badge-pop">
+                      <Flame size={10} /> MAIS QUENTE AGORA
+                    </span>
+                    {destaque.desconto_pct && destaque.desconto_pct > 0 && (
+                      <span className="absolute top-3 right-3 badge-desconto">
+                        {formatarDesconto(destaque.desconto_pct)}
+                      </span>
+                    )}
+
+                    {/* Info no rodapé da imagem */}
+                    <div className="absolute inset-x-0 bottom-0 p-4">
+                      <p className="font-display text-sm font-bold text-white line-clamp-2 group-hover:text-brand-300 transition-colors">
+                        {destaque.titulo}
+                      </p>
+                      <div className="flex items-end justify-between gap-2 mt-1.5">
+                        <div className="flex items-end gap-2">
+                          <span className="text-xl font-extrabold text-brand-400">
+                            {formatarPreco(destaque.preco_promo)}
+                          </span>
+                          {destaque.preco_original && destaque.preco_original > destaque.preco_promo && (
+                            <span className="text-xs text-gray-400 line-through mb-0.5">
+                              {formatarPreco(destaque.preco_original)}
+                            </span>
+                          )}
+                        </div>
+                        {tempDestaque && (
+                          <span className={`text-[11px] font-semibold ${tempDestaque.cor} whitespace-nowrap`}>
+                            {tempDestaque.emoji} {tempDestaque.label}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              )}
             </div>
           </div>
         )}
@@ -219,7 +315,7 @@ export default async function HomePage({
 
         {/* Grid de promos */}
         <Suspense fallback={<GridSkeleton />}>
-          <PromoFeedRealtime promosIniciais={promos} categoria={params.categoria} />
+          <PromoFeedRealtime promosIniciais={promosGrid} categoria={params.categoria} />
         </Suspense>
 
       </main>

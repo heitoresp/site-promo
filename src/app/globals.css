@@ -265,6 +265,18 @@ body {
 }
 
 /* ============================================================
+   UTILITÁRIO: esconder barra de rolagem
+   (usado nas pills de categoria com overflow horizontal)
+   ============================================================ */
+.scrollbar-none {
+  scrollbar-width: none;       /* Firefox */
+  -ms-overflow-style: none;    /* IE/Edge legado */
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;               /* Chrome/Safari */
+}
+
+/* ============================================================
    FUNDO COM GRID SUTIL
    ============================================================ */
 .bg-grid {
