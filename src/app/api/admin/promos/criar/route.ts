@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
       preco_original: body.preco_original ? Number(body.preco_original) : null,
       preco_promo:    Number(body.preco_promo),
       link_afiliado:  linkAfiliado,
+      link_afiliado_manual: body.link_afiliado_manual?.trim() || null,
       loja:           body.loja ?? "outros",
       categoria:      body.categoria ?? detectarCategoria(body.titulo, body.descricao),
       cupom:          body.cupom?.trim() || null,
