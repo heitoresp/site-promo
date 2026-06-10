@@ -33,6 +33,7 @@ const FORM_VAZIO: CreatePromoPayload = {
   preco_original: undefined,
   preco_promo:    0,
   link_afiliado:  "",
+  link_afiliado_manual: "",
   loja:           "outros",
   categoria:      "geral",
   cupom:          "",
@@ -152,6 +153,7 @@ export function AdminDashboard({ user, promos: promosIniciais, pendentes: penden
       loja:           promo.loja ?? "",
       categoria:      promo.categoria ?? "",
       link_afiliado:  promo.link_afiliado ?? "",
+      link_afiliado_manual: promo.link_afiliado_manual ?? "",
       expira_em:      promo.expira_em ?? undefined,
     });
     setEditErro("");
@@ -634,10 +636,20 @@ export function AdminDashboard({ user, promos: promosIniciais, pendentes: penden
               </div>
               {/* Link */}
               <div>
-                <label className="text-xs font-medium text-gray-400 block mb-1">Link de Afiliado</label>
+                <label className="text-xs font-medium text-gray-400 block mb-1">Link do produto</label>
                 <input type="url" value={editForm.link_afiliado ?? ""}
                   onChange={e => setEditForm(p => ({ ...p, link_afiliado: e.target.value }))}
                   className="search-input w-full" placeholder="https://..." />
+              </div>
+              {/* Link de afiliado manual (meli.la / link de rastreio) */}
+              <div>
+                <label className="text-xs font-medium text-gray-400 block mb-1">
+                  Link de afiliado <span className="text-gray-600 font-normal normal-case">(opcional — ex: meli.la do Mercado Livre)</span>
+                </label>
+                <input type="url" value={editForm.link_afiliado_manual ?? ""}
+                  onChange={e => setEditForm(p => ({ ...p, link_afiliado_manual: e.target.value }))}
+                  className="search-input w-full" placeholder="https://meli.la/..." />
+                <p className="text-[11px] text-gray-600 mt-1">Se preenchido, é pra cá que o botão &quot;Pegar Promo&quot; manda.</p>
               </div>
               {/* Imagem */}
               <div>
@@ -775,7 +787,7 @@ export function AdminDashboard({ user, promos: promosIniciais, pendentes: penden
               {/* Link */}
               <div>
                 <label className="text-xs font-medium text-gray-400 block mb-1">
-                  Link de Afiliado *
+                  Link do produto *
                 </label>
                 <input
                   name="link_afiliado"
@@ -783,9 +795,26 @@ export function AdminDashboard({ user, promos: promosIniciais, pendentes: penden
                   value={form.link_afiliado}
                   onChange={handleChange}
                   required
-                  placeholder="https://amzn.to/xxxxx"
+                  placeholder="https://www.amazon.com.br/..."
                   className="search-input w-full"
                 />
+              </div>
+
+              {/* Link de afiliado manual (meli.la / rastreio) */}
+              <div>
+                <label className="text-xs font-medium text-gray-400 block mb-1">
+                  Link de afiliado{" "}
+                  <span className="text-gray-600 font-normal normal-case">(opcional — ex: meli.la do Mercado Livre)</span>
+                </label>
+                <input
+                  name="link_afiliado_manual"
+                  type="url"
+                  value={form.link_afiliado_manual ?? ""}
+                  onChange={handleChange}
+                  placeholder="https://meli.la/..."
+                  className="search-input w-full"
+                />
+                <p className="text-[11px] text-gray-600 mt-1">Se preenchido, é pra cá que o botão &quot;Pegar Promo&quot; manda.</p>
               </div>
 
               {/* Imagem */}

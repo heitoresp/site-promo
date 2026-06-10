@@ -67,18 +67,14 @@ function transformAmazon(urlOriginal: string): string {
   }
 }
 
+// Mercado Livre: o programa atual de afiliados usa LINKS de rastreio
+// gerados no painel (encurtados meli.la, ou com ?matt_tool=...). Não há
+// como transformar uma URL de produto crua em link de afiliado por
+// fórmula — isso é feito manualmente no painel do ML. O parâmetro antigo
+// `matt_word` foi descontinuado e não credita mais, então NÃO injetamos
+// nada: devolvemos o link como está (o admin/usuário cola o meli.la).
 function transformMercadoLivre(urlOriginal: string): string {
-  const id = process.env.ML_AFFILIATE_ID;
-  if (!id) return urlOriginal;
-  try {
-    const u = new URL(urlOriginal);
-    u.searchParams.set("matt_word", id);
-    u.searchParams.set("matt_from", "NULL");
-    u.searchParams.set("matt_campaign", "apenaspromo");
-    return u.toString();
-  } catch {
-    return urlOriginal;
-  }
+  return urlOriginal;
 }
 
 async function transformLomadee(urlOriginal: string): Promise<string> {
@@ -109,6 +105,19 @@ function transformAliExpress(urlOriginal: string): string {
   }
 }
 
+// Encurtadores/links que JÁ são de afiliado — preservar intactos.
+// (meli.la = Mercado Livre Afiliados; amzn.to = Amazon; s.click = AliExpress)
+const LINKS_JA_AFILIADO = ["meli.la", "amzn.to", "s.click.aliexpress.com", "awin1.com"];
+
+function jaEhLinkAfiliado(url: string): boolean {
+  try {
+    const hostname = new URL(url).hostname.replace("www.", "");
+    return LINKS_JA_AFILIADO.some((d) => hostname.includes(d));
+  } catch {
+    return false;
+  }
+}
+
 // ─── Função principal ──────────────────────────────────────
 
 /**
@@ -117,6 +126,9 @@ function transformAliExpress(urlOriginal: string): string {
  * Retorna o link original se nenhuma configuração for encontrada.
  */
 export async function transformarLinkAfiliado(urlOriginal: string): Promise<string> {
+  // Já é um link de afiliado pronto (ex: meli.la do painel ML) → não mexe
+  if (jaEhLinkAfiliado(urlOriginal)) return urlOriginal;
+
   const loja = detectarLoja(urlOriginal);
 
   switch (loja) {
@@ -141,7 +153,10 @@ export function nomeDaLoja(url: string): string {
     const hostname = new URL(url).hostname.replace("www.", "");
     const mapa: Record<string, string> = {
       "amazon.com.br":        "Amazon",
+      "amzn.to":              "Amazon",
       "mercadolivre.com.br":  "Mercado Livre",
+      "meli.la":              "Mercado Livre",
+      "mercadolivre.com":     "Mercado Livre",
       "shopee.com.br":        "Shopee",
       "magazineluiza.com.br": "Magalu",
       "magazinevoce.com.br":  "Magalu",

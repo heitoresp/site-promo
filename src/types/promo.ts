@@ -8,6 +8,7 @@ export interface Promo {
   preco_promo: number;
   desconto_pct: number | null;
   link_afiliado: string;
+  link_afiliado_manual?: string | null; // link de rastreio pronto (ex: meli.la); destino do clique quando preenchido
   loja: string;
   categoria: string;
   cupom: string | null;
@@ -48,6 +49,7 @@ export interface CreatePromoPayload {
   preco_original?: number;
   preco_promo: number;
   link_afiliado: string;
+  link_afiliado_manual?: string;
   loja?: string;
   categoria?: string;
   cupom?: string;
