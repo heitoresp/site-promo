@@ -1,6 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
 import { nomeDaLoja } from "@/lib/afiliados";
 import { parsePreco, extrairPrecosJsonLd, extrairPrecosMeta } from "@/lib/extrair-preco";
+import { createClient } from "@/lib/supabase/server";
+import { rateLimit, idDoCliente } from "@/lib/rate-limit";
+
+// Anti-SSRF: só permite buscar URLs http(s) PÚBLICAS. Bloqueia localhost,
+// IPs privados/loopback e link-local — senão o endpoint vira um proxy pra
+// escanear a rede interna do servidor.
+function urlPublicaSegura(raw: string): boolean {
+  let u: URL;
+  try { u = new URL(raw); } catch { return false; }
+  if (u.protocol !== "http:" && u.protocol !== "https:") return false;
+
+  const host = u.hostname.toLowerCase();
+  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".internal")) return false;
+
+  // IPv6 loopback/local
+  if (host === "::1" || host.startsWith("fe80") || host.startsWith("fc") || host.startsWith("fd")) return false;
+
+  // IPv4 privado / loopback / link-local / metadata cloud
+  const m = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (m) {
+    const [a, b] = [Number(m[1]), Number(m[2])];
+    if (a === 10) return false;
+    if (a === 127) return false;
+    if (a === 0) return false;
+    if (a === 169 && b === 254) return false;        // link-local + metadata (169.254.169.254)
+    if (a === 172 && b >= 16 && b <= 31) return false;
+    if (a === 192 && b === 168) return false;
+  }
+  return true;
+}
 
 const USER_AGENTS = [
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
@@ -258,8 +288,24 @@ async function extrairMercadoLivre(url: string, html: string): Promise<{
 // vive em @/lib/extrair-preco — compartilhada com o cron de verificação.
 
 export async function GET(req: NextRequest) {
+  // Exige login (o preview só é usado ao submeter promo, fluxo autenticado)
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  }
+
+  // Rate limit: máx 30 previews por minuto por usuário (evita abuso/scan)
+  const limite = rateLimit(`preview:${idDoCliente(req, user.id)}`, 30, 60_000);
+  if (limite) return limite;
+
   const url = req.nextUrl.searchParams.get("url");
   if (!url) return NextResponse.json({ error: "URL obrigatória" }, { status: 400 });
+
+  // Anti-SSRF: bloqueia URLs internas/privadas
+  if (!urlPublicaSegura(url)) {
+    return NextResponse.json({ error: "URL não permitida" }, { status: 400 });
+  }
 
   const loja = nomeDaLoja(url);
   let hostname = "";
