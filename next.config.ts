@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Não expõe "X-Powered-By: Next.js" (não entrega o stack pra quem busca exploit)
+  poweredByHeader: false,
   typescript: {
     // Erros de tipo agora QUEBRAM o build (deploy não sobe bug silencioso).
     ignoreBuildErrors: false,
@@ -27,6 +29,24 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     // Server Actions habilitadas por padrão no Next.js 15
+  },
+  // Cabeçalhos de segurança aplicados a todas as rotas
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          // Impede o site de ser embutido em iframe (anti-clickjacking/phishing)
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          // Navegador não "adivinha" tipo de conteúdo (anti-MIME-sniffing)
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          // Não vaza a URL completa do site como referer pra terceiros
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          // Bloqueia APIs sensíveis do navegador que o site não usa
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+        ],
+      },
+    ];
   },
 };
 

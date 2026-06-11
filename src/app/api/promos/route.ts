@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import type { CreatePromoPayload } from "@/types/promo";
 import { calcularTemperatura } from "@/lib/temperatura";
+import { CAMPOS_PUBLICOS } from "@/lib/promo-campos";
 
 // ============================================================
 // Helpers
@@ -111,7 +112,7 @@ export async function GET(request: NextRequest) {
 
   let query = supabase
     .from("promos")
-    .select("*", { count: "exact" })
+    .select(CAMPOS_PUBLICOS, { count: "exact" })
     .eq("ativo", true)
     .or("expira_em.is.null,expira_em.gt." + new Date().toISOString())
     .order("criado_em", { ascending: false })
