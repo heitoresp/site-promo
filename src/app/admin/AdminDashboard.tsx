@@ -641,14 +641,14 @@ export function AdminDashboard({ user, promos: promosIniciais, pendentes: penden
                   onChange={e => setEditForm(p => ({ ...p, link_afiliado: e.target.value }))}
                   className="search-input w-full" placeholder="https://..." />
               </div>
-              {/* Link de afiliado manual (meli.la / link de rastreio) */}
+              {/* Link de afiliado manual (meli.la / shope.ee / link de rastreio) */}
               <div>
                 <label className="text-xs font-medium text-gray-400 block mb-1">
-                  Link de afiliado <span className="text-gray-600 font-normal normal-case">(opcional — ex: meli.la do Mercado Livre)</span>
+                  Link de afiliado <span className="text-gray-600 font-normal normal-case">(opcional — ex: meli.la do ML ou shope.ee da Shopee)</span>
                 </label>
                 <input type="url" value={editForm.link_afiliado_manual ?? ""}
                   onChange={e => setEditForm(p => ({ ...p, link_afiliado_manual: e.target.value }))}
-                  className="search-input w-full" placeholder="https://meli.la/..." />
+                  className="search-input w-full" placeholder="https://meli.la/... ou https://shope.ee/..." />
                 <p className="text-[11px] text-gray-600 mt-1">Se preenchido, é pra cá que o botão &quot;Pegar Promo&quot; manda.</p>
               </div>
               {/* Imagem */}
@@ -800,18 +800,18 @@ export function AdminDashboard({ user, promos: promosIniciais, pendentes: penden
                 />
               </div>
 
-              {/* Link de afiliado manual (meli.la / rastreio) */}
+              {/* Link de afiliado manual (meli.la / shope.ee / link de rastreio) */}
               <div>
                 <label className="text-xs font-medium text-gray-400 block mb-1">
                   Link de afiliado{" "}
-                  <span className="text-gray-600 font-normal normal-case">(opcional — ex: meli.la do Mercado Livre)</span>
+                  <span className="text-gray-600 font-normal normal-case">(opcional — ex: meli.la do ML ou shope.ee da Shopee)</span>
                 </label>
                 <input
                   name="link_afiliado_manual"
                   type="url"
                   value={form.link_afiliado_manual ?? ""}
                   onChange={handleChange}
-                  placeholder="https://meli.la/..."
+                  placeholder="https://meli.la/... ou https://shope.ee/..."
                   className="search-input w-full"
                 />
                 <p className="text-[11px] text-gray-600 mt-1">Se preenchido, é pra cá que o botão &quot;Pegar Promo&quot; manda.</p>
