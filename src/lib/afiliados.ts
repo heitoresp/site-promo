@@ -3,8 +3,9 @@
 //
 // Suporte:
 //   - Amazon Associates  → adiciona ?tag=
-//   - Mercado Livre      → adiciona ?matt_word= (programa ML Afiliados)
-//   - Lomadee API        → deeplink para Shopee, Magalu, Netshoes, Americanas
+//   - Mercado Livre      → link manual meli.la (programa ML Afiliados)
+//   - Shopee             → link manual shope.ee (programa Shopee Afiliados)
+//   - Lomadee API        → deeplink para Magalu, Netshoes, Americanas
 //   - AliExpress         → adiciona parâmetros Awin/Alibaba
 //   - Fallback           → retorna link original sem modificação
 //
@@ -13,7 +14,6 @@
 
 // Lojas cobertas pelo Lomadee (adicione mais conforme necessário)
 const LOMADEE_STORES = [
-  "shopee.com.br",
   "magazineluiza.com.br",
   "magazinevoce.com.br",
   "netshoes.com.br",
@@ -43,6 +43,7 @@ function detectarLoja(url: string): string | null {
     if (hostname.includes("mercadolivre.com.br") ||
         hostname.includes("mercadopago.com.br") ||
         hostname.includes("meli.com"))             return "mercadolivre";
+    if (hostname.includes("shopee.com.br"))        return "shopee";
     if (ALIEXPRESS_STORES.some(s => hostname.includes(s))) return "aliexpress";
     if (LOMADEE_STORES.some(s => hostname.includes(s)))    return "lomadee";
     return null;
@@ -68,12 +69,16 @@ function transformAmazon(urlOriginal: string): string {
 }
 
 // Mercado Livre: o programa atual de afiliados usa LINKS de rastreio
-// gerados no painel (encurtados meli.la, ou com ?matt_tool=...). Não há
-// como transformar uma URL de produto crua em link de afiliado por
-// fórmula — isso é feito manualmente no painel do ML. O parâmetro antigo
-// `matt_word` foi descontinuado e não credita mais, então NÃO injetamos
-// nada: devolvemos o link como está (o admin/usuário cola o meli.la).
+// gerados no painel (encurtados meli.la). Não há como transformar uma URL
+// de produto crua por fórmula — o admin cola o meli.la em link_afiliado_manual.
 function transformMercadoLivre(urlOriginal: string): string {
+  return urlOriginal;
+}
+
+// Shopee: o programa Shopee Afiliados gera links curtos shope.ee no painel.
+// Não há API pública para gerar esses links on-the-fly — modelo igual ao ML:
+// o admin cola o shope.ee em link_afiliado_manual.
+function transformShopee(urlOriginal: string): string {
   return urlOriginal;
 }
 
@@ -106,8 +111,8 @@ function transformAliExpress(urlOriginal: string): string {
 }
 
 // Encurtadores/links que JÁ são de afiliado — preservar intactos.
-// (meli.la = Mercado Livre Afiliados; amzn.to = Amazon; s.click = AliExpress)
-const LINKS_JA_AFILIADO = ["meli.la", "amzn.to", "s.click.aliexpress.com", "awin1.com"];
+// (meli.la = Mercado Livre; shope.ee = Shopee; amzn.to = Amazon; s.click = AliExpress)
+const LINKS_JA_AFILIADO = ["meli.la", "shope.ee", "amzn.to", "s.click.aliexpress.com", "awin1.com"];
 
 function jaEhLinkAfiliado(url: string): boolean {
   try {
@@ -136,6 +141,8 @@ export async function transformarLinkAfiliado(urlOriginal: string): Promise<stri
       return transformAmazon(urlOriginal);
     case "mercadolivre":
       return transformMercadoLivre(urlOriginal);
+    case "shopee":
+      return transformShopee(urlOriginal);
     case "lomadee":
       return await transformLomadee(urlOriginal);
     case "aliexpress":
@@ -158,6 +165,7 @@ export function nomeDaLoja(url: string): string {
       "meli.la":              "Mercado Livre",
       "mercadolivre.com":     "Mercado Livre",
       "shopee.com.br":        "Shopee",
+      "shope.ee":             "Shopee",
       "magazineluiza.com.br": "Magalu",
       "magazinevoce.com.br":  "Magalu",
       "netshoes.com.br":      "Netshoes",
