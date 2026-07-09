@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Sora } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const inter = Inter({
@@ -53,6 +54,7 @@ export default function RootLayout({
     <html lang="pt-BR" className={`${inter.variable} ${sora.variable} dark`}>
       <body className="ambient-glow bg-grid min-h-screen antialiased">
         {children}
+        <Analytics />
       </body>
     </html>
   );
